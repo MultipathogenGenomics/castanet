@@ -37,6 +37,7 @@ flowchart TD
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
     E[Generate unique read counts]-->|Castanet, Samtools|F[Analysis]
     F[Analysis]-->|Castanet|G[Post hoc filter]
+    F[Analysis]-->|Castanet|H[Call consensus sequences]
     G[Post hoc filter]-->|Castanet|H[Filter Reads]
     H[Filter Reads]-.->|Castanet|E
 ```

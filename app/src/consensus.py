@@ -118,7 +118,8 @@ class Consensus:
 
     def main(self):
         # RM <TODO SWAP MKDIRS FOR UTIL FN
-        end_sec_print("Calling consensus sequences")
+        end_sec_print(
+            "Calling consensus sequences\nThis may take a little while...")
         shell(f"samtools index {self.a['folder_stem']}{self.a['SeqName']}.bam",
               "Samtools Index Call (CONSENSUS.PY)")
         for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
