@@ -79,11 +79,11 @@ class Consensus:
             '''Make MSA of references, then add fragments from target consensuses'''
             print(
                 f"INFO: making reference alignments for target group: {org_name}")
-            shell(f"mafft {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+            shell(f"mafft --thread -1 {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
                   "Mafft align ref seqs (CONSENSUS.PY)")
             print(
                 f"INFO: adding consensuses to alignment for organism: {org_name}")
-            shell(f"mafft --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+            shell(f"mafft --thread -1 --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
                   "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
             '''Make flat consensus'''
@@ -119,7 +119,7 @@ class Consensus:
     def main(self):
         # RM <TODO SWAP MKDIRS FOR UTIL FN
         end_sec_print(
-            "Calling consensus sequences\nThis may take a little while...")
+            "INFO: Calling consensus sequences\nThis may take a little while...")
         shell(f"samtools index {self.a['folder_stem']}{self.a['SeqName']}.bam",
               "Samtools Index Call (CONSENSUS.PY)")
         for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
