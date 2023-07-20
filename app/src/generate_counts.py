@@ -1,3 +1,4 @@
+import subprocess as sp
 from app.utils.shell_cmds import shell
 from app.utils.system_messages import end_sec_print
 
@@ -10,9 +11,12 @@ def run_counts(p, api_entry=True):
         }
     else:
         p["ExpDir"] = f"{p['ExpDir']}/"
-    # shell(f"""for BamFilePath in $(ls experiments/{p['ExpName']}/*.bam); do BamPath=$BamFilePath; BamName=$(basename "BamPath%%.bam"); BamName=$(sed s'/_dedup//' <<< ${{BamName}}); samtools view -F2048 -F4 ${{BamPath}} | python3 -m app.src.parse_bam -Mode parse -SeqName {p['SeqName']} | sort | uniq -c | sed s'/ /,/'g | sed s'/^[,]*//'g; done > experiments/{p['ExpName']}/{p['SeqName']}_PosCounts.csv""")
-    # RM < TODO BROKEN INTO STEPS SO CAN BREAKPOINT PARSE_BAM
+
+    bamview_fname = f"experiments/{p['ExpName']}/{p['SeqName']}_bamview.txt"
     shell(
-        f"""for BamFilePath in $(ls experiments/{p['ExpName']}/*.bam); do BamPath=$BamFilePath; BamName=$(basename "BamPath%%.bam"); BamName=$(sed s'/_dedup//' <<< ${{BamName}}); samtools view -F2048 -F4 ${{BamPath}} > bamview.txt; done """)
-    shell(f"python3 -m app.src.parse_bam -Mode parse -SeqName {p['SeqName']}")
+        f"""samtools view -F2048 -F4 experiments/{p['ExpName']}/{p['SeqName']}.bam > {bamview_fname}""")
+
+    # Easier to run call to Python script via sp run rather than utility fn shell()
+    sp.run(
+        f"python3 -m app.src.parse_bam -Mode parse -SeqName {p['SeqName']} -ExpDir {p['ExpDir']} -ExpName {p['ExpName']} | sort | uniq -c | sed s'/ /,/'g | sed s'/^[,]*//'g > experiments/{p['ExpName']}/{p['SeqName']}_PosCounts.csv", shell=True)
     end_sec_print("INFO: Counts generated")

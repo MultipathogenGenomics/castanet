@@ -120,6 +120,7 @@ def run_end_to_end(payload) -> str:
     run_analysis(payload)
     if payload["PostFilt"]:
         run_post_filter(payload)
+    do_consensus(payload)
     return "Task complete. See terminal output for details."
 
 

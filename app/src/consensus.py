@@ -15,7 +15,7 @@ class Consensus:
 
     def __init__(self, payload) -> None:
         self.a = payload
-        self.a["folder_stem"] = f"experiments/{self.a['SeqName']}/"
+        self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
         self.consensus_seqs, self.consensus_refs = {}, {}
         self.refs = read_fa(self.a["RefStem"])
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/"):
@@ -78,7 +78,7 @@ class Consensus:
 
             '''Make MSA of references, then add fragments from target consensuses'''
             print(
-                f"INFO: making reference alignments for organism: {org_name}")
+                f"INFO: making reference alignments for target group: {org_name}")
             shell(f"mafft {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
                   "Mafft align ref seqs (CONSENSUS.PY)")
             print(

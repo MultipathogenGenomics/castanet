@@ -370,8 +370,9 @@ class Analysis:
         '''Depth calculation'''
         depth = self.add_depth(probelengths)
         '''Merge in sample info  (including total raw reads) and participant data if specified'''
-        if self.a["Clin"]:
-            depth = self.add_clin(depth)
+        # RM < TODO DISABLED as might not need; can derive most information from raw data if needed
+        # if self.a["Clin"]:
+        #     depth = self.add_clin(depth)
         self.save_tophits(depth)
         self.df = self.df.merge(
             depth, on=['sampleid', 'probetype'], how='left')

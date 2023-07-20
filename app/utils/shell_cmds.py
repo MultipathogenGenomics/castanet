@@ -38,3 +38,7 @@ def stoperr(s, errcode=1):
 def read_line(h):
     '''Parse line from input file'''
     return h.readline().decode("utf-8")
+
+
+def make_dir(name):
+    shell(f"mkdir -p {name}")

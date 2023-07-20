@@ -6,7 +6,7 @@ import pandas as pd
 
 from app.utils.argparsers import parse_args_bam_parse
 from app.utils.error_handlers import error_handler_parse_bam_positions
-from app.utils.shell_cmds import shell
+from app.utils.shell_cmds import shell, make_dir
 from app.utils.utility_fns import get_gene_orgid
 
 
@@ -19,6 +19,7 @@ class Parse_bam_positions:
     def __init__(self, argies) -> None:
         self.min_match_length = 40
         self.argies = argies
+        self.n = 10  # Min n reads to decide we want to make a consensus
         self.reads_by_hit = {}
 
     def getmatchsize(self, cigar):
@@ -69,6 +70,27 @@ class Parse_bam_positions:
             else:
                 return
 
+    def save_hit_dbs(self):
+        grp_aln_f = f"experiments/{self.argies.ExpName}/grouped_reads/"
+        make_dir(f"mkdir {grp_aln_f}")
+
+        for key in self.reads_by_hit.keys():
+            '''Save list of grouped read QNAME ids for calling consensuses, if more than n reads'''
+            if len(self.reads_by_hit[key]) < self.n:
+                '''Don't save grouped reads if less than n'''
+                continue
+
+            if len(key) > 100:
+                '''Curtail very long probe names'''
+                short_key = key[0:100].replace("|", "_")
+            else:
+                short_key = key.replace("|", "_")
+
+            make_dir(f"mkdir {grp_aln_f}{short_key}")
+            with open(f"{grp_aln_f}{short_key}/{short_key}.lst", "w") as file:
+                [file.write(f"{self.reads_by_hit[key][i][0]}\n")
+                    for i in range(len(self.reads_by_hit[key]))]
+
     def main(self):
         '''Entrypoint. Multi functional across generate counts and post filter.'''
         error_handler_parse_bam_positions(sys.argv)
@@ -87,7 +109,7 @@ class Parse_bam_positions:
         #         self.filter_bam(l, reads_to_drop)
 
         if self.argies.Mode == "parse":
-            file = "./bamview.txt"
+            file = f"experiments/{self.argies.ExpName}/{self.argies.SeqName}_bamview.txt"
         elif self.argies.Mode == "reparse":
             file = "./test/remapped_full.sam"
         else:
@@ -104,34 +126,11 @@ class Parse_bam_positions:
                     self.filter_bam(l, reads_to_drop)
 
         if len(self.reads_by_hit) == 0:
-            print("INFO: No hits found between input BAM file and reference sequences")
+            '''No hits found between input BAM file and reference sequences'''
+            # RM < TODO Gate this on minimum n reads??
             return
         else:
             self.save_hit_dbs()
-
-    def save_hit_dbs(self):
-        grp_aln_f = f"experiments/{self.argies.SeqName}/grouped_reads/"
-        remap_f = f"experiments/{self.argies.SeqName}/grouped_alignments/remaps/"
-        if not os.path.isdir(grp_aln_f):
-            shell(f"mkdir {grp_aln_f}")
-            shell(f"mkdir {remap_f}")
-
-        if self.argies.Mode == "parse":
-            folder = grp_aln_f
-        else:
-            folder = remap_f
-
-        for key in self.reads_by_hit.keys():
-            '''Save list of grouped read QNAME ids for calling consensuses'''
-            if not os.path.isdir(f"{folder}{key}"):
-                shell(f"mkdir {folder}{key}")
-            with open(f"{folder}{key}/{key}.lst", "w") as file:
-                [file.write(f"{self.reads_by_hit[key][i][0]}\n")
-                 for i in range(len(self.reads_by_hit[key]))]
-
-            # with open(f"{folder}{key}.fasta", "w") as file:  # Save seqs
-            #     [file.write(f">{self.reads_by_hit[key][i][0]}\n{self.reads_by_hit[key][i][1]}\n")
-            #      for i in range(len(self.reads_by_hit[key]))]
 
 
 if __name__ == '__main__':

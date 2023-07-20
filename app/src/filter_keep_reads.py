@@ -81,7 +81,7 @@ class FilterKeepReads:
                 num_reads = self.filter_Reads(inpath, out_h)
             loginfo(f'Wrote {num_reads} reads to {outpath}.')
 
-        end_sec_print("Filter keep reads complete.")
+        end_sec_print("INFO: Filter keep reads complete.")
 
 
 if __name__ == '__main__':
