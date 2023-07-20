@@ -64,12 +64,12 @@ class Consensus:
 
         else:
             '''Otherwise, flatten with MAFFT'''
-            # RM < TODO pad?
+            # RM < TODO pad consensus seqs to ~same length?
             '''Retrieve matching ref seqs and save to persistent files'''
             ref_seq_names = list(set([i.replace(">", "")
                                  for i in self.consensus_refs[org_name]]))
-            ref_seqs = [ref for ref in self.refs if any(
-                ref_seq_name in ref[0] for ref_seq_name in ref_seq_names)]
+            ref_seqs = [ref for ref in self.refs if ref[0].replace(
+                ">", "") in ref_seq_names]
             with open(f"{self.a['folder_stem']}consensus_data/temp_refs.fasta", "w") as f:
                 [f.write(f"{i[0]}\n{i[1]}\n") for i in ref_seqs]
             with open(f"{self.a['folder_stem']}consensus_data/temp_seqs.fasta", "w") as f:
