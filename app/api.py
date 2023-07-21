@@ -2,6 +2,8 @@ import os
 import re
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
+
+from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
 from app.utils.write_logs import write_input_params
@@ -110,6 +112,7 @@ async def end_to_end(payload: E2e_data) -> None:
     run_end_to_end(payload)
 
 
+@timing
 def run_end_to_end(payload) -> str:
     make_exp_dir(payload["ExpName"])
     run_kraken(payload)

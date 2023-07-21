@@ -2,9 +2,10 @@ import os
 import re
 import pysam
 import numpy as np
+import pandas as pd
 
 from app.utils.timer import timing
-from app.utils.shell_cmds import shell
+from app.utils.shell_cmds import shell, make_dir
 from app.utils.utility_fns import get_gene_orgid, read_fa
 from app.utils.system_messages import end_sec_print
 
@@ -18,8 +19,9 @@ class Consensus:
         self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
         self.consensus_seqs, self.consensus_refs = {}, {}
         self.refs = read_fa(self.a["RefStem"])
-        if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/"):
-            shell(f"mkdir {self.a['folder_stem']}consensus_data/")
+        self.probe_names = pd.read_csv(
+            f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
+        make_dir(f"mkdir {self.a['folder_stem']}consensus_data/")
 
     def filter_bam(self, tar_name) -> None:
         '''Take list of QNAME ids, filter and make new bam specific to target'''
@@ -29,6 +31,7 @@ class Consensus:
             f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
         outfile = pysam.AlignmentFile(
             f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam", template=infile, mode='wb')
+        # RM < TODO CHECK WE'RE NOT OVER MATCHING, e.g. "ERR10812876.61077" > "ERR10812876.610776". Append space?
         [outfile.write(aln) for aln in infile if aln.query_name in fq]
         infile.close(), outfile.close()
 
@@ -38,21 +41,39 @@ class Consensus:
         shell(f"samtools consensus -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta",
               "Samtools consensus call (CONSENSUS.PY)")
 
-    def collate_consensus_seqs(self, tar_name, consensus_org):
+    def collate_consensus_seqs(self, tar_name):
         '''Read and collate to self var the consensus seqs from per target to per organism'''
         seqs_and_refs = [i for i in read_fa(
             f"{self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta") if tar_name in i[0]]
+        # aggn, refn, seq
+        seqs_and_refs = [[self.aggregate_to_probename(
+            i[0]), i[0], i[1]] for i in seqs_and_refs]
+
+        if len(seqs_and_refs) == 0:
+            # RM < TODO TEST PROPERLY with [i[0] for i in seqs_and_refs]
+            return
+        consensus_org = seqs_and_refs[0][0]
+
         if not consensus_org in self.consensus_seqs.keys():
-            self.consensus_seqs[consensus_org] = [i[1] for i in seqs_and_refs]
-            self.consensus_refs[consensus_org] = [i[0] for i in seqs_and_refs]
+            self.consensus_seqs[consensus_org] = [i[2] for i in seqs_and_refs]
+            self.consensus_refs[consensus_org] = [
+                [i[0], i[1]] for i in seqs_and_refs]
         else:
             self.consensus_seqs[consensus_org].append(
-                ', '.join([i[1] for i in seqs_and_refs]))
+                ', '.join([i[2] for i in seqs_and_refs]))
             self.consensus_refs[consensus_org].append(
-                ', '.join([i[0] for i in seqs_and_refs]))
+                [[i[0], i[1]] for i in seqs_and_refs])
 
-    def flatten_consensus(self, org_name):
-        '''Create flat consensus for an organism'''
+    def aggregate_to_probename(self, ref):
+        match = self.probe_names.iloc[np.where(
+            np.isin(self.probe_names["target_id"], ref.replace(">", "")))[0]]
+        if match.empty:
+            return f"Unmatched"
+        else:
+            return f"{match['probetype'].item()}"
+
+    def call_flat_consensus(self, org_name):
+        '''Create consensus sequences'''
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
             shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
@@ -66,8 +87,8 @@ class Consensus:
             '''Otherwise, flatten with MAFFT'''
             # RM < TODO pad consensus seqs to ~same length?
             '''Retrieve matching ref seqs and save to persistent files'''
-            ref_seq_names = list(set([i.replace(">", "")
-                                 for i in self.consensus_refs[org_name]]))
+            ref_seq_names = list(set([i[0][1].replace(">", "")
+                                      for i in self.consensus_refs[org_name]]))
             ref_seqs = [ref for ref in self.refs if ref[0].replace(
                 ">", "") in ref_seq_names]
             with open(f"{self.a['folder_stem']}consensus_data/temp_refs.fasta", "w") as f:
@@ -76,25 +97,29 @@ class Consensus:
                 [f.write(f">TARGET_CONSENSUS_{i}\n{self.consensus_seqs[org_name][i]}\n") for i in range(
                     len(self.consensus_seqs[org_name]))]
 
-            '''Make MSA of references, then add fragments from target consensuses'''
-            print(
-                f"INFO: making reference alignments for target group: {org_name}")
-            shell(f"mafft --thread -1 {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
-                  "Mafft align ref seqs (CONSENSUS.PY)")
-            print(
-                f"INFO: adding consensuses to alignment for organism: {org_name}")
-            shell(f"mafft --thread -1 --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-                  "Mafft align consensus with ref seqs (CONSENSUS.PY)")
-
-            '''Make flat consensus'''
-            flat_consensus = self.rich_consensus(np.array([list(i[1]) for i in read_fa(
-                f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]), False)
-            shell(
-                f"rm {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/temp_refs.fasta")
+            flat_consensus = self.call_flattened_consensus(org_name)
 
         '''Save'''
         with open(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta", "w") as f:
             f.write(f">{org_name}_consensus\n{flat_consensus}")
+
+    def call_flattened_consensus(self, org_name):
+        '''Make MSA of references, then add fragments from target consensuses'''
+        print(
+            f"INFO: making reference alignments for target group: {org_name}")
+        shell(f"mafft --thread -1 {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+              "Mafft align ref seqs (CONSENSUS.PY)")
+        print(
+            f"INFO: adding consensuses to alignment for organism: {org_name}")
+        shell(f"mafft --thread -1 --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+              "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+
+        '''Make flat consensus'''
+        flat_consensus = self.rich_consensus(np.array([list(i[1]) for i in read_fa(
+            f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]), False)
+        shell(
+            f"rm {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/temp_refs.fasta")
+        return flat_consensus
 
     @timing
     def rich_consensus(self, aln, gap):
@@ -126,9 +151,55 @@ class Consensus:
             self.filter_bam(tar_name)
             self.call_consensus(tar_name)
 
-        [self.collate_consensus_seqs(tar_name, get_gene_orgid(tar_name)[
-                                     0]) for tar_name in os.listdir(f"{self.a['folder_stem']}/grouped_reads/")]
-        [self.flatten_consensus(i) for i in self.consensus_seqs.keys()]
+        [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
+            f"{self.a['folder_stem']}/grouped_reads/")]
+        [self.call_flat_consensus(i) for i in self.consensus_seqs.keys()]
+        [self.call_ref_corrected_consensus(tar_name)
+         for tar_name in self.consensus_seqs.keys()]
+
+    def call_ref_corrected_consensus(self, tar_name):
+        '''TODO DOCSTRING'''
+        targets_for_group = [i.replace("\n", "").replace(">", "") for i in open(
+            f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_consensus_alignment.aln").readlines() if i.startswith(">") and not "TARGET" in i]
+        target_dirs = [i for i in os.listdir(
+            f"{self.a['folder_stem']}grouped_reads/") if i in targets_for_group]
+        bamout_fname = f"{self.a['folder_stem']}consensus_data/ref_cons_merge.bam"
+        # can't use both types of quote mark inside an fstring
+        fol_stem = self.a['folder_stem']
+
+        shell(
+            f"""samtools merge {bamout_fname} {' '.join([f'{fol_stem}grouped_reads/{i}/{i}.bam' for i in target_dirs])}""")
+
+        # Maybe some kallisto in the middle to select ref seq?
+        ref_seq = "LR699734.1"  # RM < TODO HARD CODED FOR EX
+        # << MAKE BLAST DB https://ftp.ncbi.nlm.nih.gov/blast/db/ https://ftp.ncbi.nlm.nih.gov/blast/documents/blastdb.html
+        bam_name = f"{self.a['folder_stem']}consensus_data/temp_bam.bam"
+        fas_name = f"{self.a['folder_stem']}consensus_data/temp_fasta.bam"
+
+        # samtools consensus with ref in
+        shell(
+            f"samtools consensus -a --show-ins no {bamout_fname} -o {self.a['folder_stem']}consensus_data/ref_cons_merge.fasta")
+
+        contigs = [i for i in read_fa(
+            f"{self.a['folder_stem']}consensus_data/ref_cons_merge.fasta") if i[0].replace(">", "") in targets_for_group]
+        contigs.append(
+            read_fa(f"./pathogen_seq_dbs/{tar_name}/{ref_seq}/{ref_seq}.fasta")[0])
+        with open(f"{self.a['folder_stem']}consensus_data/ref_cons_merge.fasta", "w") as f:
+            [f.write(f"{i[0]}\n{i[1]}\n") for i in contigs]
+
+        print(
+            f"INFO: generating reference-adjusted consensus for target group / reference: {tar_name} / {ref_seq}")
+
+        shell(
+            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem ./pathogen_seq_dbs/{tar_name}/{ref_seq}/{ref_seq}.fasta {self.a['folder_stem']}consensus_data/ref_cons_merge.fasta > {bam_name} && samtools fasta {bam_name} > {fas_name}")
+        flat_consensus = self.rich_consensus(
+            np.array([list(i) for i in read_fa("test.fasta")]), False)
+        shell(
+            f"rm {bam_name} {fas_name} {self.a['folder_stem']}consensus_data/ref_cons_merge.bam {self.a['folder_stem']}consensus_data/ref_cons_merge.fasta")
+
+        '''Save'''
+        with open(f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_ref_adjusted_consensus_sequence.fasta", "w") as f:
+            f.write(f">{tar_name}_consensus\n{flat_consensus}")
 
 
 class Consensus_maptorefs:
@@ -160,12 +231,12 @@ class Consensus_maptorefs:
         # RM < TODO MAKE DYNAMIC
         return f'hbv/{refseq.replace(".fasta", "")}/{refseq}'
 
-    def reparse(self, refdb):
-        '''Re-map to bam, stream SAM to new parse functions'''
-        shell(f"{self.Bwa} mem {refdb} {self.GroupedAlignmentsFpath}{self.GroupedAlignmentsFname}.fasta | samtools view -F4 -Sb - | samtools sort - | samtools view -F2048 -F4 - > {self.GroupedAlignmentsFpath}{self.GroupedAlignmentsFname}.sam")
-        shell(
-            f"python3 -m app.src.parse_bam -Mode reparse -SeqName {self.SeqName}",
-            "Call to Castanet parse_bam class (CONSENSUS.PY)")
+    # def reparse(self, refdb):
+    #     '''Re-map to bam, stream SAM to new parse functions'''
+    #     shell(f"{self.Bwa} mem {refdb} {self.GroupedAlignmentsFpath}{self.GroupedAlignmentsFname}.fasta | samtools view -F4 -Sb - | samtools sort - | samtools view -F2048 -F4 - > {self.GroupedAlignmentsFpath}{self.GroupedAlignmentsFname}.sam")
+    #     shell(
+    #         f"python3 -m app.src.parse_bam -Mode reparse -SeqName {self.SeqName}",
+    #         "Call to Castanet parse_bam class (CONSENSUS.PY)")
 
     def make_consensus(self, fname):
         print(f"Generating candidate consensus for: {fname}")
@@ -210,7 +281,7 @@ class Consensus_maptorefs:
                 file.write(f">{key}_consensus\n{good_seqs[key]}\n")
 
     def main(self):
-        self.reparse(self.get_ref_db())
+        # self.reparse(self.get_ref_db())
         if len(os.listdir(self.RemapDir)) == 0:
             print(
                 f"Failed to remap grouped alignments for grouping: {self.RefPathogen} to reference genomes")

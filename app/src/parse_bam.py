@@ -102,21 +102,7 @@ class Parse_bam_positions:
                 raise SystemExit(
                     f"Couldn't find reads to drop file: {self.argies.FilterFile}. Did your run generate one?")
 
-        # for l in sys.stdin:
-        #     if self.argies.Mode == "parse":
-        #         self.parse_bam_position(l, self.argies["SeqNane"])
-        #     else:
-        #         self.filter_bam(l, reads_to_drop)
-
-        if self.argies.Mode == "parse":
-            file = f"experiments/{self.argies.ExpName}/{self.argies.SeqName}_bamview.txt"
-        elif self.argies.Mode == "reparse":
-            file = "./test/remapped_full.sam"
-        else:
-            raise SystemExit(
-                "IM RUNNING IN DEV MODE, CAN'T RUN IN FILTER MODE")
-
-        with open(file) as f:
+        with open(f"experiments/{self.argies.ExpName}/{self.argies.SeqName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
                     self.parse_bam_position(l)
@@ -127,9 +113,9 @@ class Parse_bam_positions:
 
         if len(self.reads_by_hit) == 0:
             '''No hits found between input BAM file and reference sequences'''
-            # RM < TODO Gate this on minimum n reads??
             return
         else:
+            '''Save data for consensus call fns'''
             self.save_hit_dbs()
 
 

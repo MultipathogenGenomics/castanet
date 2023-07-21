@@ -86,6 +86,7 @@ class Analysis:
             'Klebsiella') or x.startswith('Enterobacter')), 'probetype'] = 'Enterobacteriaceae'
         loginfo(
             f'Organism and gene summary: {pdf.probetype.nunique()} organisms, up to {pdf.groupby("probetype").genename.nunique().max()} genes each.')
+        pdf.to_csv(f"{self.output_dir}/probe_aggregation.csv")
         return pdf
 
     def reassign_dups(self):
