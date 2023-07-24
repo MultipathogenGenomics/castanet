@@ -114,6 +114,7 @@ async def end_to_end(payload: E2e_data) -> None:
 
 @timing
 def run_end_to_end(payload) -> str:
+    end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
     make_exp_dir(payload["ExpName"])
     run_kraken(payload)
     do_filter_keep_reads(payload)

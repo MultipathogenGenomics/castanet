@@ -14,7 +14,7 @@ class Consensus:
     '''Take all targets in one probetype/species aggregation, call consensus for each,
     flatten consensuses into single sequence.'''
 
-    def __init__(self, payload) -> None:
+    def __init__(self, payload, ref_adj_cons=False) -> None:
         self.a = payload
         self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
         self.consensus_seqs, self.consensus_refs = {}, {}
@@ -22,6 +22,7 @@ class Consensus:
         self.probe_names = pd.read_csv(
             f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
         make_dir(f"mkdir {self.a['folder_stem']}consensus_data/")
+        self.do_ref_adjusted_cons = ref_adj_cons
 
     def filter_bam(self, tar_name) -> None:
         '''Take list of QNAME ids, filter and make new bam specific to target'''
@@ -38,7 +39,9 @@ class Consensus:
     def call_consensus(self, tar_name) -> None:
         '''Call consensus sequence for sam alignment records, grouped by target'''
         # RM < TODO we probably want FQ so we can filter low quality?
-        shell(f"samtools consensus -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta",
+        end_sec_print(
+            f">>INFO: Calling first conensus on bam file matching target: {tar_name}")
+        shell(f"samtools consensus -t {os.cpu_count()} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta",
               "Samtools consensus call (CONSENSUS.PY)")
 
     def collate_consensus_seqs(self, tar_name):
@@ -107,11 +110,11 @@ class Consensus:
         '''Make MSA of references, then add fragments from target consensuses'''
         print(
             f"INFO: making reference alignments for target group: {org_name}")
-        shell(f"mafft --thread -1 {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        shell(f"mafft --thread {os.cpu_count()} {self.a['folder_stem']}consensus_data/temp_refs.fasta > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
         print(
             f"INFO: adding consensuses to alignment for organism: {org_name}")
-        shell(f"mafft --thread -1 --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+        shell(f"mafft --thread {os.cpu_count()} --6merpair --addfragments {self.a['folder_stem']}consensus_data/temp_seqs.fasta {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
         '''Make flat consensus'''
@@ -123,6 +126,7 @@ class Consensus:
 
     @timing
     def rich_consensus(self, aln, gap):
+        '''Constrcut `dumb` consensus'''
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
             hits, cnt = np.unique(aln[:, i], return_counts=True)
@@ -154,8 +158,10 @@ class Consensus:
         [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
             f"{self.a['folder_stem']}/grouped_reads/")]
         [self.call_flat_consensus(i) for i in self.consensus_seqs.keys()]
-        [self.call_ref_corrected_consensus(tar_name)
-         for tar_name in self.consensus_seqs.keys()]
+        if self.do_ref_adjusted_cons:
+            [self.call_ref_corrected_consensus(tar_name)
+             for tar_name in self.consensus_seqs.keys()]
+        end_sec_print("INFO: Consensus calling complete")
 
     def call_ref_corrected_consensus(self, tar_name):
         '''TODO DOCSTRING'''

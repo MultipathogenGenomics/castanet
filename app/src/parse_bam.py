@@ -13,6 +13,7 @@ from app.utils.utility_fns import get_gene_orgid
 class Parse_bam_positions:
     '''
     Parse contents of bam file, via reading shell commands passed in.
+    Count reads mapped to each target, generate read groupings for consensus calling.
     Should only get called by another Python script due to requirement for shell input.
     '''
 
