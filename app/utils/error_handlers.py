@@ -52,16 +52,17 @@ def error_handler_filter_keep_reads(argies):
                 line = read_line(handle)
 
     '''Check NCBI TaxIDs to retain/exclude'''
-    try:
-        argies["ExcludeIds"] = (frozenset(argies["ExcludeIds"].split(
-            ',')) | frozenset(exclude_list)) - frozenset([''])
-    except:
-        stoperr(f'TaxID(s) {argies["ExcludeIds"]} invalid.')
-    try:
-        argies["retain"] = (frozenset(argies["RetainIds"].split(
-            ',')) | frozenset(retain_list)) - frozenset([''])
-    except:
-        stoperr(f'TaxID(s) {argies["RetainIds"]} invalid.')
+    if not type(argies["ExcludeIds"]) == frozenset:
+        try:
+            argies["ExcludeIds"] = (frozenset(argies["ExcludeIds"].split(
+                ',')) | frozenset(exclude_list)) - frozenset([''])
+        except:
+            stoperr(f'TaxID(s) {argies["ExcludeIds"]} invalid.')
+        try:
+            argies["retain"] = (frozenset(argies["RetainIds"].split(
+                ',')) | frozenset(retain_list)) - frozenset([''])
+        except:
+            stoperr(f'TaxID(s) {argies["RetainIds"]} invalid.')
     if not argies["ExcludeIds"] and not argies["RetainIds"]:
         stoperr('Nothing to do. Exiting.')
 
@@ -80,14 +81,15 @@ def error_handler_analysis(argies):
         stoperr('Unable to open input file {0}.'.format(argies["input_file"]))
 
     '''Validate sample info file'''
-    if argies["Samples"] and not os.path.isfile(argies["Samples"]):
-        stoperr(
-            f'Unable to open sample data from input file {argies["Samples"]}.')
-    with open(argies["Samples"]) as samples_inf:
-        samples_header_check = samples_inf.readline()
-        if ('sampleid' not in samples_header_check) or ('pt' not in samples_header_check) or ('rawreadnum' not in samples_header_check):
-            stoperr(
-                f'{argies["Samples"]} must contain at least the following columns: pt, sampleid, rawreadnum')
+    # RM < TODO Samples input disabled.
+    # if argies["Samples"] and not os.path.isfile(argies["Samples"]):
+    #     stoperr(
+    #         f'Unable to open sample data from input file {argies["Samples"]}.')
+    # with open(argies["Samples"]) as samples_inf:
+    #     samples_header_check = samples_inf.readline()
+    #     if ('sampleid' not in samples_header_check) or ('pt' not in samples_header_check) or ('rawreadnum' not in samples_header_check):
+    #         stoperr(
+    #             f'{argies["Samples"]} must contain at least the following columns: pt, sampleid, rawreadnum')
     if argies["Clin"]:
         if not os.path.isfile(argies["Clin"]):
             stoperr(

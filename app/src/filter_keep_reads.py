@@ -3,7 +3,7 @@ import os
 import subprocess as sp
 from collections import deque
 
-from app.utils.shell_cmds import loginfo, read_line
+from app.utils.shell_cmds import loginfo, read_line, shell
 from app.utils.argparsers import parse_args_filter_keep_reads
 from app.utils.error_handlers import error_handler_filter_keep_reads
 from app.utils.system_messages import end_sec_print
@@ -58,6 +58,7 @@ class FilterKeepReads:
     def main(self):
         '''Entrypoint'''
         '''Read in Kraken file, populate exclude/retain ID loc sets'''
+        end_sec_print("INFO: Filtering reads using Kraken2 annotations.")
         handle = sp.Popen((self.cmd_string(
             self.a["kraken"]), self.a["kraken"]), bufsize=8192, stdout=sp.PIPE).stdout
         line = read_line(handle)
@@ -81,7 +82,9 @@ class FilterKeepReads:
                 num_reads = self.filter_Reads(inpath, out_h)
             loginfo(f'Wrote {num_reads} reads to {outpath}.')
 
-        end_sec_print("Filter keep reads complete.")
+        shell(
+            f"rm experiments/{self.a['ExpName']}/{self.a['SeqName']}_1.kraken")
+        end_sec_print("INFO: Filter reads complete.")
 
 
 if __name__ == '__main__':

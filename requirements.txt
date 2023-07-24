@@ -1,5 +1,5 @@
 numpy==1.24.3
-pandas==2.0.2
+pandas==2.0.3
 matplotlib==3.7.1
 pydantic==1.10.9
 fastapi==0.97.0
