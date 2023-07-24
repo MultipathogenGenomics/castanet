@@ -41,7 +41,7 @@ class Consensus:
         # RM < TODO we probably want FQ so we can filter low quality?
         end_sec_print(
             f">>INFO: Calling first conensus on bam file matching target: {tar_name}")
-        shell(f"samtools consensus -t {os.cpu_count()} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta",
+        shell(f"samtools consensus -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta",
               "Samtools consensus call (CONSENSUS.PY)")
 
     def collate_consensus_seqs(self, tar_name):
