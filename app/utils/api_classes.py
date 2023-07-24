@@ -116,7 +116,7 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
     pass
 
 
-class Batch_data(Data_BatchName, Data_ExpDir, Data_AdaptP, Data_RefStem,
+class Batch_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
                  Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters):
     pass
 
