@@ -15,7 +15,7 @@ from app.src.generate_counts import run_counts
 from app.src.consensus import Consensus
 from app.src.analysis import Analysis
 from app.src.post_filter import run_post_filter
-from app.utils.api_classes import (Batch_data, E2e_data, Preprocess_data, Filter_keep_reads_data,
+from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data,
                                    Post_filter_data, Consensus_data)
 
@@ -76,17 +76,15 @@ async def read_root() -> dict:
     return {"response": "API is healthy. Append the current URL to include '/docs/' at the end to visit the GUI."}
 
 
-'''Consumer endpoints'''
-
-
-@app.post("/batch/", tags=["Dev endpoints"])
-async def batch(payload: Batch_data) -> str:
+@app.post("/batch_eval/", tags=["Dev endpoints"])
+async def batch(payload: Batch_eval_data) -> str:
     payload = process_payload(payload)
     SeqNames = get_batch_seqnames(payload["BatchName"])
     for i in SeqNames:
         payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
         payload["ExpName"] = payload["SeqName"] = i[0]
         run_end_to_end(payload)
+        run_eval(payload)
     return "Task complete. See terminal output for details."
 
 
@@ -102,6 +100,22 @@ def get_batch_seqnames(batch_name) -> list:
         assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."
         fstems.append([list(set(f))[0], f_full])
     return fstems
+
+
+@app.post("/end_to_end/", tags=["Dev endpoints"])
+async def end_to_end(payload: E2e_eval_data) -> None:
+    payload = process_payload(payload)
+    end_sec_print(
+        f"INFO: Starting run, saving results to {payload['ExpName']}.")
+    run_end_to_end(payload)
+    run_eval(payload)
+
+
+def run_eval(payload):
+    print("EVAL PLACEHOLDER")
+
+
+'''Consumer endpoints'''
 
 
 @app.post("/end_to_end/", tags=["End to end pipeline"])

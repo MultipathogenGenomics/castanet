@@ -50,6 +50,13 @@ class Data_NThreads(BaseModel):
                           description="Number of threads to doing parallel jobs on, with supported dependencies. Cannot exceed n logical CPU cores.")
 
 
+class Data_GroundTruth(BaseModel):
+    GtFile: str = Query('data/my_ground_truth.csv',
+                        description="CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    GtOrg: str = Query('Paramyxoviridae_RSV',
+                       description="Name of target organism to measure ground truth sequence against.")
+
+
 class Data_FilterFilters(BaseModel):
     LineageFile: Union[None, str] = Query('data/ncbi_lineages_2023-06-15.csv.gz',
                                           description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa.")
@@ -70,7 +77,7 @@ class Data_FilterFilters(BaseModel):
 class Data_AnalysisExtras(BaseModel):
     Probes: str = Query("data/probelengths_rmlst_virus_extra_ercc.csv",
                         description="CSV file containing probe length mappings. Absolute path required.")
-    Samples: str = Query("data/samples.csv",
+    Samples: str = Query("",
                          description="CSV file containing sample data for annotations during analysis phase. Absolute path required.")
     KeepDups: bool = Query(True,
                            description='(OPTIONAL) If true, do not reassign duplicates to the sample with the majority in each duplicate cluster (Default: True).')
@@ -85,6 +92,11 @@ class Data_AnalysisExtras(BaseModel):
 
 class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters):
+    pass
+
+
+class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
+                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters, Data_GroundTruth):
     pass
 
 
@@ -116,8 +128,8 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
     pass
 
 
-class Batch_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                 Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters):
+class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
+                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters, Data_GroundTruth):
     pass
 
 
