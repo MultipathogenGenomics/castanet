@@ -31,3 +31,7 @@ cd ViralConsensus
 make
 sudo mv viral_consensus /usr/local/bin/
 cd ..
+
+
+# make blast db local. download from https://ftp.ncbi.nlm.nih.gov/blast/db/
+# makeblastdb -in input_db -dbtype nucl -parse_seqids

@@ -24,3 +24,8 @@ def read_fa(fpath):
                 seqs.append(l.replace("\n", ""))
     seqs_split = [i.split("\n") for i in "".join(seqs).split("?")]
     return [i for i in seqs_split if not i == [""]]
+
+
+def save_fa(fpath, pat):
+    with open(fpath, "w") as f:
+        f.write(pat)
