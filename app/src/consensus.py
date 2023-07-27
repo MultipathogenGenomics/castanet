@@ -1,16 +1,12 @@
 import os
-import re
-import pysam
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
 
 from app.utils.timer import timing
 from app.utils.shell_cmds import shell, make_dir
-from app.utils.utility_fns import read_fa, save_fa
+from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
-from app.utils.get_genbank import DownloadGenBankFile
 
 
 class Consensus:
@@ -175,12 +171,8 @@ class Consensus:
         shell(f"mkdir {self.fnames['temp_folder']}")
 
         '''Retrieve GT seq'''
-        gt_table = pd.read_csv(self.a['GtFile'])
-        acc_id = gt_table[gt_table["Primary_accession"] ==
-                          self.a["SeqName"]]["GenBank_accession"].item()
-        ref_gb = DownloadGenBankFile(
-            f"{self.a['folder_stem']}consensus_data/GROUND_TRUTH_{self.a['GtOrg']}.gb", acc_id, "test@test.com")
-        ref_seq = [acc_id, str(ref_gb[acc_id].seq)]
+        ref_seq = get_reference_org(
+            self.a['GtFile'], self.a["SeqName"], self.a['folder_stem'])
 
         '''Save ref seq and index, then run bwa mem of ref seq vs contigs'''
         print(f"INFO: "

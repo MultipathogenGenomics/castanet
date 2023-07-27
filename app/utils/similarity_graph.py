@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import biotite.sequence.align as align
 import biotite.sequence.graphics as graphics
 import biotite.sequence.io.fasta as fasta
+
 from app.utils.utility_fns import read_fa
+from app.utils.system_messages import end_sec_print
 
 
 class SimilarityGraph:
@@ -12,10 +14,12 @@ class SimilarityGraph:
     doi: 10.1186/s12859-018-2367-z
     https://www.biotite-python.org/examples/gallery/sequence/pi3k_alignment.html#sphx-glr-examples-gallery-sequence-pi3k-alignment-py'''
 
-    def __init__(self, ExpName, RefOrg) -> None:
+    def __init__(self, ExpName, RefOrg, in_fname, out_fname) -> None:
         self.a = {
             "folder_stem": f"experiments/{ExpName}/",
-            "ref_org": f"{RefOrg}"
+            "ref_org": f"{RefOrg}",
+            "in_fname": in_fname,
+            "out_fname": f"experiments/{ExpName}/evaluation/{out_fname}"
         }
         self.bins = 200  # RM << TODO PARAMETERISE BIN NO
         self.figsize = (18, 3.0)
@@ -68,7 +72,7 @@ class SimilarityGraph:
                     np.nanmean(similarities[i, edges[j]:edges[j+1]])
         return binned_similarities
 
-    def draw_figure(self, seq_dict, similarities, fname):
+    def draw_figure(self, seq_dict, similarities):
         '''Draw figure'''
         figure = plt.figure(figsize=self.figsize)
         ax = figure.add_subplot(111)
@@ -77,27 +81,30 @@ class SimilarityGraph:
         )
         cbar = figure.colorbar(heatmap)
         cbar.set_label("Average normalized similarity")
-        ax.set_xlabel("Alignment position")
+        ax.set_xlabel(
+            f"Alignment position (bins: {round(similarities.shape[1] / self.bins)} bp)")
         ax.set_yticks(np.arange(0+0.5, len(seq_dict.keys())))
         ax.set_yticklabels(seq_dict.keys())
         figure.tight_layout()
-        figure.savefig(f"{fname}.pdf")
+        figure.savefig(f"{self.a['out_fname']}.pdf")
 
     def main(self):
+        end_sec_print(
+            f"INFO: Building and graphing similarity matrix: {self.a['ref_org']}\n({self.a['out_fname']})")
         '''Load aln file'''
-        seq_dict = {i[0]: i[1] for i in read_fa(
-            f"{self.a['folder_stem']}consensus_data/{self.a['ref_org']}/{self.a['ref_org']}_consensus_alignment.aln")}
+        seq_dict = {i[0]: i[1] for i in read_fa(f"{self.a['in_fname']}")}
         '''Extract codes, construct sim matrix & fill similarity scores'''
         similarities = self.construct_matrix(
             align.get_codes(fasta.get_alignment(seq_dict)))
         '''Plot'''
-        self.draw_figure(seq_dict, similarities,
-                         f"{self.a['folder_stem']}evaluation/consensus_alignment_matrix")
+        self.draw_figure(seq_dict, similarities)
 
 
 if __name__ == "__main__":
     cls = SimilarityGraph(
         "ERR10812875",
-        "Paramyxoviridae_RSV"
+        "Paramyxoviridae_RSV",
+        "consensus_alignment.aln",
+        "contig_vs_ref_consensus_alignments"
     )
     cls.main()

@@ -1,4 +1,6 @@
 import os
+import pandas as pd
+from app.utils.get_genbank import DownloadGenBankFile
 
 
 def make_exp_dir(ExpName):
@@ -29,3 +31,12 @@ def read_fa(fpath):
 def save_fa(fpath, pat):
     with open(fpath, "w") as f:
         f.write(pat)
+
+
+def get_reference_org(gt_file, seq_name, folder_stem):
+    gt_table = pd.read_csv(gt_file)
+    acc_id = gt_table[gt_table["Primary_accession"] ==
+                      seq_name]["GenBank_accession"].item()
+    ref_gb = DownloadGenBankFile(
+        f"{folder_stem}consensus_data/GROUND_TRUTH_{gt_file}.gb", acc_id, "test@test.com")
+    return [f">{acc_id}", str(ref_gb[acc_id].seq)]
