@@ -36,9 +36,10 @@ flowchart TD
     C[Trim adapters/poor quality reads]-->|Trimmomatic|D[Mapping]
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
     E[Generate unique read counts]-->|Castanet, Samtools|F[Analysis]
-    F[Analysis]-->|Castanet|G[Post hoc filter]
+    F[Analysis]-.->|Castanet|G[Post hoc filter]
     F[Analysis]-->|Castanet|I[Call consensus sequences]
-    G[Post hoc filter]-->|Castanet|H[Filter Reads]
+    I[Call consensus sequences]-.->|Castanet|J[Evaluate]
+    G[Post hoc filter]-.->|Castanet|H[Filter Reads]
     H[Filter Reads]-.->|Castanet|E
 ```
 
@@ -165,7 +166,15 @@ Output of analysis (misassigned reads) may be used to post (downstream) filter i
 *Output*
 1. Compressed alignment map file: {ExpDir}{SeqName}.bam
 
+## Consensus
+Details to follow, after publication of accompanying method.
+
+## Evaluate
+Details to follow, after publication of accompanying method.
+
 # Dependency notes
+The included `install_deps.sh` script will attempt to install the following dependencies automatically. Depending on your specific system set-up, manual installation of some or all components may still be required. Details are included below.
+
 ## Lineage file
 We have included a lineage file in the repo for convenience. Users may generate up-to-date files using the repository below.
 
@@ -188,8 +197,24 @@ Trimming is an essential quality control process for removing sequence fragments
 
 ```http://www.usadellab.org/cms/?page=trimmomatic```
 
+## MAFFT
+Generation of consensus sequences requires multiple sequence alignment. Castanet is developed for use with MAFFT as we find it to be faster/more scalable and more accurate other programs. It is not possible to substitute MAFFT for another MSA program without making code changes, as we use functionality for adding unaligned fragnentary sequences that, to our knowledge, is unique to MAFFT.
+
+```https://mafft.cbrc.jp/alignment/software/```
+
+## ViralConsensus
+We use several algorithms to construct consensus sequences, one of which is Morishi's "ViralConsensus", which is a fast and memory-efficient tool for calling whole genome sequences directly from read aligned data. See Ref. `https://doi.org/10.1093/bioinformatics/btad317` for more information.
+
+```https://github.com/niemasd/ViralConsensus```
 
 # Changelog
+## Version 2, 28/07/23
+1. Added consensensus calling functions
+1. Added evaluation of consensus sequence functions
+1. Experiment result folder creation and persisitent file storage overhauled
+1. Various optimizations
+1. Readme updated
+
 ## Version 1, 14/06/23
 1. Python scripts naturalised to Python3
 1. Project and working directory structure
