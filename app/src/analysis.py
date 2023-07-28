@@ -230,7 +230,7 @@ class Analysis:
                     except ValueError:
                         pass
                     plt.savefig(
-                        f'{odir}/{probetype}-{sampleid}.pdf')
+                        f'{odir}/{probetype}-{sampleid}.png')
 
                 '''Build up dictionary of depth metrics for this sample and probetype'''
                 metrics[sampleid, probetype] = (g.n.sum(), g.n.count(), n_targets, n_genes, nmax_targets, nmax_genes, nmax_probetype, npos,

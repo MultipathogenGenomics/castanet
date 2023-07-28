@@ -1,16 +1,12 @@
 import os
-import re
-import pysam
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
 
 from app.utils.timer import timing
 from app.utils.shell_cmds import shell, make_dir
-from app.utils.utility_fns import read_fa, save_fa
+from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
-from app.utils.get_genbank import DownloadGenBankFile
 
 
 class Consensus:
@@ -33,8 +29,8 @@ class Consensus:
 
     def filter_bam(self, tar_name) -> None:
         '''Filter bam to specific target, call consensus sequence for sam alignment records, grouped by target'''
-        end_sec_print(f"INFO: "
-                      f"Calling first conensus on bam file matching target: {tar_name}")
+        print(f"INFO: "
+              f"Calling consensuses on all targets for: {tar_name}")
         shell(
             f"samtools view -b {self.fnames['master_bam']} {tar_name} > {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
         shell(
@@ -175,12 +171,8 @@ class Consensus:
         shell(f"mkdir {self.fnames['temp_folder']}")
 
         '''Retrieve GT seq'''
-        gt_table = pd.read_csv(self.a['GtFile'])
-        acc_id = gt_table[gt_table["Primary_accession"] ==
-                          self.a["SeqName"]]["GenBank_accession"].item()
-        ref_gb = DownloadGenBankFile(
-            f"{self.a['folder_stem']}consensus_data/GROUND_TRUTH_{self.a['GtOrg']}.gb", acc_id, "test@test.com")
-        ref_seq = [acc_id, str(ref_gb[acc_id].seq)]
+        ref_seq = get_reference_org(
+            self.a['GtFile'], self.a["SeqName"], self.a['folder_stem'])
 
         '''Save ref seq and index, then run bwa mem of ref seq vs contigs'''
         print(f"INFO: "
@@ -218,6 +210,8 @@ class Consensus:
             for tar_name in self.consensus_seqs.keys()]
         shell(
             f"find {self.a['folder_stem']}grouped_reads/ -name '*.bam' -delete")
+        shell(
+            f"find {self.a['folder_stem']}consensus_data/ -name '*.bam' -delete")
         end_sec_print("INFO: Consensus calling complete")
 
 
