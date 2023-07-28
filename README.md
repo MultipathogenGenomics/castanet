@@ -42,6 +42,7 @@ flowchart TD
     G[Post hoc filter]-.->|Castanet|H[Filter Reads]
     H[Filter Reads]-.->|Castanet|E
 ```
+Dotted lines indicate optional pipeline stages.
 
 ## Prerequisites
 We assume the user has the following files to hand and wishes to create an experiment with the following parameters:
