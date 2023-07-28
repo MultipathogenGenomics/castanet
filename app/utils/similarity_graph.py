@@ -86,7 +86,7 @@ class SimilarityGraph:
         ax.set_yticks(np.arange(0+0.5, len(seq_dict.keys())))
         ax.set_yticklabels(seq_dict.keys())
         figure.tight_layout()
-        figure.savefig(f"{self.a['out_fname']}.pdf")
+        figure.savefig(f"{self.a['out_fname']}.png")
 
     def main(self):
         end_sec_print(

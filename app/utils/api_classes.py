@@ -135,3 +135,7 @@ class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
 
 class Consensus_data(Data_ExpName, Data_SeqName, Data_RefStem):
     pass
+
+
+class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_GroundTruth):
+    pass

@@ -29,8 +29,8 @@ class Consensus:
 
     def filter_bam(self, tar_name) -> None:
         '''Filter bam to specific target, call consensus sequence for sam alignment records, grouped by target'''
-        end_sec_print(f"INFO: "
-                      f"Calling first conensus on bam file matching target: {tar_name}")
+        print(f"INFO: "
+              f"Calling consensuses on all targets for: {tar_name}")
         shell(
             f"samtools view -b {self.fnames['master_bam']} {tar_name} > {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
         shell(
@@ -210,6 +210,8 @@ class Consensus:
             for tar_name in self.consensus_seqs.keys()]
         shell(
             f"find {self.a['folder_stem']}grouped_reads/ -name '*.bam' -delete")
+        shell(
+            f"find {self.a['folder_stem']}consensus_data/ -name '*.bam' -delete")
         end_sec_print("INFO: Consensus calling complete")
 
 
