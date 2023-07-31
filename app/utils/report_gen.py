@@ -14,9 +14,11 @@ from app.utils.pdf_mappings import get_bullet_style, get_fluff_style, get_header
 
 
 class GenerateReport:
-    def __init__(self, contigs_fig_path, consensus_fig_path, payload, stats_df) -> None:
+    def __init__(self, contigs_fig_path, consensus_fig_path, payload, t_stats, c_stats, m_stats) -> None:
         self.a = payload
-        self.stats_df = stats_df
+        self.t_stats = t_stats   # Target consensuses
+        self.c_stats = c_stats   # Remapped consensus
+        self.m_stats = m_stats  # Mash between consensus types
         self.depth_df = pd.read_csv(
             f"{self.a['folder_stem']}{self.a['SeqName']}_depth.csv")
         self.depth = self.depth_df[self.depth_df["probetype"]
@@ -67,8 +69,8 @@ class GenerateReport:
         return logo
 
     def split_stats(self):
-        table_data = [self.stats_df.columns[:,].values.astype(
-            str).tolist()] + self.stats_df.values.tolist()
+        table_data = [self.m_stats.columns[:,].values.astype(
+            str).tolist()] + self.m_stats.values.tolist()
         table_data = [i[1:5] for i in table_data]
         vs_genome_data, vs_gs_data = [], []
         for i in range(len(table_data)):
@@ -170,6 +172,16 @@ class GenerateReport:
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
 
+        '''Remapped consensus Key Stats'''
+        story.append(Paragraph(
+            "Castanet (Re-mapped) Consensus Statistics", self.styles["Heading2"]))
+        '''Vs Genome table'''
+        vs_gs_table, genome_tbl_style = self.build_table(
+            self.c_stats, (3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm))
+        vs_gs_table.setStyle(genome_tbl_style)
+        story.append(vs_gs_table)
+        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
+
         '''Consensus vs known Details'''
         story.append(
             Paragraph("All consensus vs Known Viral Sequence", self.styles["Heading2"]))
@@ -195,9 +207,17 @@ class GenerateReport:
         vs_gs_table.setStyle(genome_tbl_style)
         story.append(vs_gs_table)
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
+
         '''Contigs details'''
         story.append(Paragraph(
             "Contigs (individual target consensuses) vs Targets", self.styles["Heading2"]))
+        '''Contig coverage table'''
+        genome_tbl, genome_tbl_style = self.build_table(self.t_stats, dims=(
+            6.25*cm, 1.75*cm, 1.75*cm, 1.75*cm, 1.75*cm, 1.75*cm, 1.75*cm, 1.75*cm, 1.75*cm))
+        genome_tbl.setStyle(genome_tbl_style)
+        story.append(genome_tbl)
+        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
+        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
         story.append(Paragraph(
             "Graph shows similarity of all relevant targets, with target consensuses stacked on top", self.styles["Normal"]))
         '''Contigs Image'''

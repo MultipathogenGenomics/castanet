@@ -90,6 +90,8 @@ class Data_AnalysisExtras(BaseModel):
 class Data_ConsensusParameters(BaseModel):
     ConsensusMinD: int = Query(10,
                                description="Minimum base depth required to make a call, for consensus calling functions")
+    ConsensusCoverage: float = Query(30.0,
+                                     description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
 
 
 '''Endpoint objects'''

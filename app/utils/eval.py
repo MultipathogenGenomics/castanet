@@ -81,54 +81,76 @@ class Evaluate:
         shell(f"mash dist {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_flattened_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_remapped_consensus.fa.msh > {self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv")
 
     def collate_stats(self) -> pd.DataFrame:
-        '''Grab MASH output, put in dataframe, save'''
-        df = pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_true_genome.csv",
-                         delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])
-        df = pd.concat([df, pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv",
-                       delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])])
-        df.to_csv(f"{self.a['folder_stem']}evaluation/mash_results_full.csv")
-        return df
+        '''Collect stats sets on: target consensus, remapped consensus, MASH values between consensus types'''
+        '''Stats on target consensuses. b = base, m = map, cov = coverage, d = depth'''
+        t_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/target_consensus_coverage.csv", sep="\t",
+                           names=["tar_name", "start_pos", "end_pos", "n_reads", "cov_bs", "cov", "mean_d",  "mean_b_q", "mean_m_q"])
+        t_df = t_df[t_df["n_reads"] != 0]  # must have > 1 read
+        t_df = t_df.round(2)
+        t_stats = [t_df.columns.tolist()] + t_df.values.tolist()
 
-    def create_report(self, df):
+        ''''Stats on remapped consensus'''
+        c_df = pd.read_csv(
+            f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_pos_counts.tsv", sep="\t")  # remapped cons stats
+        gc = round((c_df["G"].sum() + c_df["C"].sum()) /
+                   c_df["Total"].sum() * 100, 2)
+        missing = c_df[c_df["Total"] == 0].shape[0]
+        ambigs = c_df[(c_df["-"] != 0) & (c_df["A"] == 0) & (c_df["C"]
+                                                             == 0) & (c_df["T"] == 0) & (c_df["G"] == 0)].shape[0]
+        coverage = round(
+            (1 - ((missing + ambigs) / c_df["Total"].sum())) * 100, 2)
+        c_stats = [["mapped_bases", "gc_pc", "missing_bs", "ambig_bs", "cov"],
+                   [c_df["Total"].sum(), gc, missing, ambigs, coverage]]
+
+        '''Grab MASH output, put in dataframe, save'''
+        m_df = pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_true_genome.csv",
+                           delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])
+        m_df = pd.concat([m_df, pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv",
+                                            delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])])
+        m_df.to_csv(f"{self.a['folder_stem']}evaluation/mash_results_full.csv")
+        return t_stats, c_stats, m_df
+
+    def create_report(self, t_stats, c_stats, stats_df):
         '''Call report generator'''
         cls = GenerateReport(
             self.contig_graph_fname,
             self.consen_graph_fname,
             self.a,
-            df
+            t_stats, c_stats, stats_df
         )
         cls.main()
 
     def main(self) -> None:
         '''Retrieve all varieties of cons seq, graph'''
-        try:
-            ref_seq_present = self.get_consensus_seqs()
-            self.call_alignment()
+        # try:
+        ref_seq_present = self.get_consensus_seqs()
+        self.call_alignment()
 
-            self.call_graph(self.aln_fname, "consensus_vs_true_seq")
+        self.call_graph(self.aln_fname, "consensus_vs_true_seq")
 
-            '''Call graph on contig consensuses'''
-            self.call_graph(
-                f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+        '''Call graph on contig consensuses'''
+        self.call_graph(
+            f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
-            '''Do stats'''
-            if ref_seq_present:
-                self.call_mash_dist()
-            else:
-                self.do_unreferenced_eval()
+        '''Do stats'''
+        if ref_seq_present:
+            self.call_mash_dist()
+        else:
+            self.do_unreferenced_eval()
 
-            stats_df = self.collate_stats()
-            self.create_report(stats_df)
-        except Exception as e:
-            end_sec_print(
-                f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+        t_stats, c_stats, stats_df = self.collate_stats()
+        self.create_report(t_stats, c_stats, stats_df)
+
+        # except Exception as e:
+        #     end_sec_print(
+        #         f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
 
 
 if __name__ == "__main__":
     cls = Evaluate(
         {
-            "ExpName": "ERR10812875",
-            "SeqName": "ERR10812875",
+            "ExpName": "ERR10812876",
+            "SeqName": "ERR10812876",
             "GtOrg": "Paramyxoviridae_RSV",
             "GtFile": "data/rsv_set_metadata.csv",
             "StartTime": time.time()

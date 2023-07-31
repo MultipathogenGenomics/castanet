@@ -7,6 +7,7 @@ from app.utils.shell_cmds import shell, make_dir
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
+from app.utils.basic_cli_calls import samtools_index, bwa_index
 
 
 class Consensus:
@@ -34,7 +35,7 @@ class Consensus:
         shell(
             f"samtools view -b {self.fnames['master_bam']} {tar_name} > {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
         shell(
-            f"samtools consensus --min-depth {self.a['ConsensusMinD']} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
+            f"samtools consensus --call-fract 0.9 --min-depth {self.a['ConsensusMinD']} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
 
     def collate_consensus_seqs(self, tar_name):
         '''Read and collate to self var the consensus seqs from per target to per organism'''
@@ -88,7 +89,7 @@ class Consensus:
             with open(self.fnames['flat_cons_refs'], "w") as f:
                 [f.write(f"{i[0]}\n{i[1]}\n") for i in ref_seqs]
             with open(self.fnames['flat_cons_seqs'], "w") as f:
-                [f.write(f">TARGET_CONSENSUS_{i}\n{self.consensus_seqs[org_name][i]}\n") for i in range(
+                [f.write(f"{self.consensus_refs[org_name][i][0][1]}_CONS\n{self.consensus_seqs[org_name][i]}\n") for i in range(
                     len(self.consensus_seqs[org_name]))]
             flat_consensus = self.flatten_consensus(org_name)
 
@@ -142,16 +143,31 @@ class Consensus:
             ">", "") for i in self.consensus_refs[org_name] if i[0][1].startswith(">") and not "TARGET" in i]
         target_dirs = [i for i in os.listdir(
             self.fnames['grouped_reads_dir']) if i in targets_for_group]
+
         '''Merge all bam files in grouped reads dir where they correspond to current target group'''
-        shell(f"""samtools merge {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam {' '.join([f'{self.a["folder_stem"]}grouped_reads/{i}/{i}.bam' for i in target_dirs])}""",
+        shell(f"""samtools merge {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{self.a["folder_stem"]}grouped_reads/{i}/{i}.bam' for i in target_dirs])}""",
               "Samtools merge, ref-adjusted consensus call (CONSENSUS.PY)")
+        '''Output coverage stats for target consensuses'''
+        shell(
+            f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+
+        '''Get coverage for each consensus, further filter collated bam to targets > n cov'''
+        coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",
+                                  names=["tar_name", "start_pos", "end_pos", "n_reads", "cov_bs", "cov", "mean_d",  "mean_b_q", "mean_m_q"])
+        coverage_filter = coverage_df[coverage_df["cov"] >=
+                                      self.a['ConsensusCoverage']]["tar_name"].tolist()
+        samtools_index(
+            f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")
+        shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} > {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
 
     @timing
     def remap_flat_consensus(self, org_name):
         '''Remap reads to flattened consensus, save'''
+        bwa_index(
+            f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
+        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | ./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
         shell(
-            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 index {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
-        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | ./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']}")
+            f"samtools stats {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam > {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_stats.stats")
         shell(
             f"find {self.a['folder_stem']}consensus_data/{org_name}/ -name '*.fasta.*' -delete")
 
@@ -179,8 +195,7 @@ class Consensus:
               f"generating reference-adjusted consensus for target group / reference: {tar_name} / {ref_seq[0]}")
         save_fa(f"{self.fnames['temp_ref_seq']}",
                 f">{ref_seq[0]}\n{ref_seq[1]}\n")
-        shell(
-            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 index {self.fnames['temp_ref_seq']}")
+        bwa_index(f"{self.fnames['temp_ref_seq']}")
 
         '''Run alignment and flatten consensus'''
         shell(
@@ -195,8 +210,7 @@ class Consensus:
     def main(self):
         end_sec_print(
             "INFO: Calling consensus sequences\nThis may take a little while...")
-        shell(f"samtools index {self.a['folder_stem']}{self.a['SeqName']}.bam",
-              "Samtools Index Call (CONSENSUS.PY)")
+        samtools_index(f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
 
         for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
             self.filter_bam(tar_name)
