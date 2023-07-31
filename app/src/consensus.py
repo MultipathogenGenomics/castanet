@@ -151,7 +151,7 @@ class Consensus:
         '''Remap reads to flattened consensus, save'''
         shell(
             f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 index {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
-        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | ./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
+        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | ./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']}")
         shell(
             f"find {self.a['folder_stem']}consensus_data/{org_name}/ -name '*.fasta.*' -delete")
 
@@ -186,7 +186,7 @@ class Consensus:
         shell(
             f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam > {self.fnames['collated_reads_fastq']}")
         shell(
-            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
+            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --min_depth {self.a['ConsensusMinD']}")
 
         '''Save'''
         shell(f"rm {self.fnames['collated_reads_fastq']}")
