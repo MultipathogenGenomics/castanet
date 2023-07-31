@@ -3,6 +3,7 @@ import time
 import pandas as pd
 
 from app.utils.shell_cmds import make_dir, shell
+from app.utils.system_messages import end_sec_print
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.similarity_graph import SimilarityGraph
 from app.utils.report_gen import GenerateReport
@@ -24,14 +25,24 @@ class Evaluate:
 
     def get_consensus_seqs(self) -> None:
         '''Read in reference and consensus seqs, rename seqs, save versions to eval folder for stats and graphing'''
+        ref_seq_present = True
         all_seqs = [get_reference_org(
             self.a['GtFile'], self.a['SeqName'], self.a['folder_stem'])]
+        if all_seqs[0][0] == ">NO REFERENCE AVAILABLE":
+            '''If no GT viral sequence, remove empty entry from aln'''
+            ref_seq_present = False
         all_seqs.append(  # Un-remapped flattened
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_sequence.fasta"))
         all_seqs.append(  # Remapped
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_remapped_consensus_sequence.fasta"))
         all_seqs.append(  # Ground truth
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_ref_adjusted_consensus.fasta"))
+
+        if not ref_seq_present:
+            '''Remove reference and ref-adjusted seqs if GT not present'''
+            del(all_seqs[-1])
+            del(all_seqs[0])
+
         '''Rename seqs, save individual fa, build mash sketch and combined fa (for aln)'''
         for i in range(len(all_seqs)):
             all_seqs[i][0] = self.seq_names[i]
@@ -42,6 +53,7 @@ class Evaluate:
 
         with open(f"{self.a['folder_stem']}evaluation/consensus_seqs.fasta", "w") as f:
             [f.write(f"{i[0]}\n{i[1]}\n") for i in all_seqs]
+        return ref_seq_present
 
     def call_alignment(self) -> None:
         '''Build MAFFT MSA of all consensuses and "true" sequence'''
@@ -62,6 +74,11 @@ class Evaluate:
         '''Call mash distances on (1) all consensuses vs original viral genome, (2) flat/remapped cons vs gold standard cons'''
         shell(f"mash dist {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_GenBank_seq.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_flattened_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_remapped_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_gold_standard_consensus.fa.msh > {self.a['folder_stem']}evaluation/mash_results_cons_vs_true_genome.csv")
         shell(f"mash dist {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_gold_standard_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_flattened_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_remapped_consensus.fa.msh > {self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv")
+
+    def do_unreferenced_eval(self) -> None:
+        '''Mash distances in the absence of references'''
+        shell(f"mash dist {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_flattened_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_remapped_consensus.fa.msh > {self.a['folder_stem']}evaluation/mash_results_cons_vs_true_genome.csv")
+        shell(f"mash dist {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_flattened_consensus.fa.msh {self.a['folder_stem']}evaluation/seqs/{self.a['GtOrg']}_remapped_consensus.fa.msh > {self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv")
 
     def collate_stats(self) -> pd.DataFrame:
         '''Grab MASH output, put in dataframe, save'''
@@ -84,18 +101,27 @@ class Evaluate:
 
     def main(self) -> None:
         '''Retrieve all varieties of cons seq, graph'''
-        self.get_consensus_seqs()
-        self.call_alignment()
-        self.call_graph(self.aln_fname, "consensus_vs_true_seq")
+        try:
+            ref_seq_present = self.get_consensus_seqs()
+            self.call_alignment()
 
-        '''Call graph on contig consensuses'''
-        self.call_graph(
-            f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+            self.call_graph(self.aln_fname, "consensus_vs_true_seq")
 
-        '''Do stats'''
-        self.call_mash_dist()
-        stats_df = self.collate_stats()
-        self.create_report(stats_df)
+            '''Call graph on contig consensuses'''
+            self.call_graph(
+                f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+
+            '''Do stats'''
+            if ref_seq_present:
+                self.call_mash_dist()
+            else:
+                self.do_unreferenced_eval()
+
+            stats_df = self.collate_stats()
+            self.create_report(stats_df)
+        except Exception as e:
+            end_sec_print(
+                f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
 
 
 if __name__ == "__main__":

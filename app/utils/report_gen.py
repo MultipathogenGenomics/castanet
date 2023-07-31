@@ -27,7 +27,7 @@ class GenerateReport:
         self.page_size = pagesizes.portrait(pagesizes.A4)
         self.now = datetime.now()
         self.styles = getSampleStyleSheet()
-        self.fname = f"{self.a['folder_stem']}evaluation/{self.a['GtOrg']}_run_report.pdf"
+        self.fname = f"{self.a['folder_stem']}evaluation/{self.a['SeqName']}_{self.a['GtOrg']}_run_report.pdf"
 
     def footer(self, canvas, doc, content) -> None:
         '''Render content on footer'''

@@ -34,7 +34,7 @@ class Consensus:
         shell(
             f"samtools view -b {self.fnames['master_bam']} {tar_name} > {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
         shell(
-            f"samtools consensus -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
+            f"samtools consensus --min-depth {self.a['ConsensusMinD']} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
 
     def collate_consensus_seqs(self, tar_name):
         '''Read and collate to self var the consensus seqs from per target to per organism'''
