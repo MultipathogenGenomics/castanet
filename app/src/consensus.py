@@ -157,7 +157,7 @@ class Consensus:
         coverage_df = coverage_df[coverage_df["cov"]
                                   >= self.a['ConsensusCoverage']]
         coverage_df.to_csv(
-            f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+            f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", index=False, header=False)
         coverage_filter = coverage_df["tar_name"].tolist()
         samtools_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")

@@ -83,7 +83,7 @@ class Evaluate:
     def collate_stats(self) -> pd.DataFrame:
         '''Collect stats sets on: target consensus, remapped consensus, MASH values between consensus types'''
         '''Stats on target consensuses. b = base, m = map, cov = coverage, d = depth'''
-        t_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/target_consensus_coverage.csv", sep="\t",
+        t_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/target_consensus_coverage.csv",
                            names=["tar_name", "start_pos", "end_pos", "n_reads", "cov_bs", "cov", "mean_d",  "mean_b_q", "mean_m_q"])
         t_df = t_df[t_df["n_reads"] != 0]  # must have > 1 read
         t_df = t_df.round(2)
