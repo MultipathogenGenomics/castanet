@@ -17,7 +17,7 @@ class Consensus:
     def __init__(self, payload) -> None:
         self.a = payload
         self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
-        self.consensus_seqs, self.consensus_refs = {}, {}
+        self.target_consensuses = {}
         self.refs = read_fa(self.a["RefStem"])
         self.probe_names = pd.read_csv(
             f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
@@ -50,15 +50,14 @@ class Consensus:
 
         consensus_org = seqs_and_refs[0][0]
 
-        if not consensus_org in self.consensus_seqs.keys():
-            self.consensus_seqs[consensus_org] = [i[2] for i in seqs_and_refs]
-            self.consensus_refs[consensus_org] = [
-                [[i[0], i[1]]] for i in seqs_and_refs]
-        else:
-            self.consensus_seqs[consensus_org].append(
-                ', '.join([i[2] for i in seqs_and_refs]))
-            self.consensus_refs[consensus_org].append(
-                [[i[0], i[1]] for i in seqs_and_refs])
+        if not consensus_org in self.target_consensuses.keys():
+            self.target_consensuses[consensus_org] = []
+
+        for i in seqs_and_refs:
+            self.target_consensuses[consensus_org].append({
+                "tar_name": i[1],
+                "consensus_seq":  ', '.join([i[2] for i in seqs_and_refs])
+            })
 
     def aggregate_to_probename(self, ref):
         match = self.probe_names.iloc[np.where(
@@ -73,33 +72,44 @@ class Consensus:
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
             shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
-        if len(self.consensus_seqs[org_name]) == 1:
+        if len(self.target_consensuses[org_name]) == 1:
             '''No flattening to be done, just a single target for this organism'''
             print(f"INFO: "
                   f"Only 1 target found for organism: {org_name} (current strategy is to not flatten)")
-            flat_consensus = "".join(self.consensus_seqs[org_name])
+            flat_consensus = "".join(
+                self.target_consensuses[org_name]["consensus_seq"])
 
         else:
             '''Otherwise, flatten consensus'''
             # RM < TODO pad consensus seqs to ~same length?
-            ref_seq_names = list(set([i[0][1].replace(">", "")
-                                      for i in self.consensus_refs[org_name]]))
-            ref_seqs = [ref for ref in self.refs if ref[0].replace(
-                ">", "") in ref_seq_names]
-            with open(self.fnames['flat_cons_refs'], "w") as f:
-                [f.write(f"{i[0]}\n{i[1]}\n") for i in ref_seqs]
-            with open(self.fnames['flat_cons_seqs'], "w") as f:
-                [f.write(f"{self.consensus_refs[org_name][i][0][1]}_CONS\n{self.consensus_seqs[org_name][i]}\n") for i in range(
-                    len(self.consensus_seqs[org_name]))]
+            self.build_msa_requisites(org_name)
             flat_consensus = self.flatten_consensus(org_name)
 
         '''Save'''
         save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
                 f">{org_name}_consensus\n{flat_consensus}")
 
-        '''Remap, re-call consensus, save if multiple consensus merged'''
-        self.filter_bam_to_organism(org_name)
+        '''Filter bam to organism-specific targets, further filter by coverage %'''
+        coverage_filter = self.filter_bam_to_organism(org_name)
+        self.filter_tar_consensuses(org_name, coverage_filter)
+
+        '''Re-make target alignment and consensus to filtered list'''
+        self.build_msa_requisites(org_name)
+        flat_consensus = self.flatten_consensus(org_name)
+
+        '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
         self.remap_flat_consensus(org_name)
+
+    def build_msa_requisites(self, org_name):
+        ref_seq_names = list(set([i["tar_name"].replace(">", "")
+                                  for i in self.target_consensuses[org_name]]))
+        ref_seqs = [ref for ref in self.refs if ref[0].replace(
+            ">", "") in ref_seq_names]
+        with open(self.fnames['flat_cons_refs'], "w") as f:
+            [f.write(f"{i[0]}\n{i[1]}\n") for i in ref_seqs]
+        with open(self.fnames['flat_cons_seqs'], "w") as f:
+            [f.write(f"{i['tar_name']}_CONS\n{i['consensus_seq']}\n")
+             for i in self.target_consensuses[org_name]]
 
     def flatten_consensus(self, org_name):
         '''Make MSA of references, then add fragments from target consensuses'''
@@ -139,8 +149,8 @@ class Consensus:
 
     def filter_bam_to_organism(self, org_name):
         '''Retrieve directories for all targets in org grouping for consequent BAM merge'''
-        targets_for_group = [i[0][1].replace(
-            ">", "") for i in self.consensus_refs[org_name] if i[0][1].startswith(">") and not "TARGET" in i]
+        targets_for_group = [i["tar_name"].replace(
+            ">", "") for i in self.target_consensuses[org_name] if i["tar_name"].startswith(">")]
         target_dirs = [i for i in os.listdir(
             self.fnames['grouped_reads_dir']) if i in targets_for_group]
 
@@ -151,7 +161,7 @@ class Consensus:
         shell(
             f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
 
-        '''Get coverage for each consensus, further filter collated bam to targets > n cov'''
+        '''Get coverage for each consensus, further filter collated bam to targets > n coverage'''
         coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",
                                   names=["tar_name", "start_pos", "end_pos", "n_reads", "cov_bs", "cov", "mean_d",  "mean_b_q", "mean_m_q"])
         coverage_df = coverage_df[coverage_df["cov"]
@@ -162,6 +172,20 @@ class Consensus:
         samtools_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")
         shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} > {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
+
+        return coverage_filter
+
+    def filter_tar_consensuses(self, org_name, filter):
+        '''Purge target consensus from master list if coverage was lower than threshold (aln is consequently remade)'''
+        to_del = []
+        for i in range(len(self.target_consensuses[org_name])):
+            if not self.target_consensuses[org_name][i]["tar_name"].replace(">", "") in filter:
+                to_del.append(i)
+
+        to_del.reverse()
+        for i in to_del:
+            '''Not done in loop and in reverse to not break the iterator'''
+            del self.target_consensuses[org_name][i]
 
     @timing
     def remap_flat_consensus(self, org_name):
@@ -178,8 +202,12 @@ class Consensus:
     def call_ref_corrected_consensus(self, tar_name):
         '''Construct a `conventional` consensus from grouped reads, with reference to a complete reference genome'''
         '''Load grouped aligned first consensus seqs to retrieve each target name'''
-        self.a["GtOrg"] = "Paramyxoviridae_RSV"
-        self.a["GtFile"] = "data/rsv_set_metadata.csv"
+        if self.a["GtOrg"] == "" and self.a["GtFile"] == "":
+            print("WARNING: Not calling reference corrected consensus as no evaluation arguments were specified (GtOrg, GtFile)")
+            return
+        elif bool(self.a["GtOrg"] == "") ^ bool(self.a["GtFile"] == ""):
+            print("WARNING: Not calling reference corrected consensus, both a GtOrg and GtFile need to be specified")
+            return
 
         if tar_name != self.a['GtOrg']:
             print(f"Target {tar_name} is not the GT organism")
@@ -220,11 +248,11 @@ class Consensus:
 
         [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
             f"{self.a['folder_stem']}/grouped_reads/")]
-        [self.call_flat_consensus(i) for i in self.consensus_seqs.keys()]
+        [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
 
         # if self.do_ref_adjusted_cons:
         [self.call_ref_corrected_consensus(tar_name)
-            for tar_name in self.consensus_seqs.keys()]
+            for tar_name in self.target_consensuses.keys()]
         shell(
             f"find {self.a['folder_stem']}grouped_reads/ -name '*.bam' -delete")
         shell(

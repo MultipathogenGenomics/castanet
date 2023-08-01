@@ -144,6 +144,7 @@ class Evaluate:
         # except Exception as e:
         #     end_sec_print(
         #         f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+        end_sec_print("Eval complete")
 
 
 if __name__ == "__main__":

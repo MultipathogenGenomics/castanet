@@ -92,6 +92,10 @@ class Data_ConsensusParameters(BaseModel):
                                description="Minimum base depth required to make a call, for consensus calling functions")
     ConsensusCoverage: float = Query(30.0,
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
+    GtFile: Optional[str] = Query('data/my_ground_truth.csv',
+                                  description="CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    GtOrg: Optional[str] = Query('Paramyxoviridae_RSV',
+                                 description="Name of target organism to measure ground truth sequence against.")
 
 
 '''Endpoint objects'''
