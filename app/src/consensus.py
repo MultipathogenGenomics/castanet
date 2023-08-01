@@ -69,24 +69,8 @@ class Consensus:
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
             shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
-        if len(self.target_consensuses[org_name]) == 1:
-            '''No flattening to be done, just a single target for this organism'''
-            print(f"INFO: "
-                  f"Only 1 target found for organism: {org_name} (current strategy is to not flatten)")
-            flat_consensus = "".join(
-                self.target_consensuses[org_name]["consensus_seq"])
-
-        else:
-            '''Otherwise, flatten consensus'''
-            # RM < TODO pad consensus seqs to ~same length?
-            self.build_msa_requisites(org_name)
-            flat_consensus = self.flatten_consensus(org_name)
-
-        '''Save'''
-        save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
-                f">{org_name}_consensus\n{flat_consensus}")
-
         '''Filter bam to organism-specific targets, further filter by coverage %'''
+        # RM < TODO pad consensus seqs to ~same length?
         coverage_filter = self.filter_bam_to_organism(org_name)
         self.filter_tar_consensuses(org_name, coverage_filter)
 
