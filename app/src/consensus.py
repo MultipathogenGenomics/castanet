@@ -111,7 +111,7 @@ class Consensus:
             [f.write(f"{i['tar_name']}_CONS\n{i['consensus_seq']}\n")
              for i in self.target_consensuses[org_name]]
 
-    def flatten_consensus(self, org_name) -> np.array:
+    def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         print(f"INFO: "
               f"making consensus alignments for target group: {org_name}")
@@ -125,7 +125,7 @@ class Consensus:
         return self.dumb_consensus(np.array([list(i[1]) for i in read_fa(
             f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]), False)
 
-    def dumb_consensus(self, aln, gap) -> np.array:
+    def dumb_consensus(self, aln, gap) -> str:
         '''Constrcut flat consensus to no reference'''
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
