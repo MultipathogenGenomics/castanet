@@ -115,3 +115,17 @@ def error_handler_analysis(argies):
     if argies["DepthInf"] and not os.path.isfile(argies["DepthInf"]):
         stoperr(f'Unable to open precomputed depth file {argies["DepthInf"]}.')
     return df
+
+
+def error_handler_consensus_ref_corrected(a, tar_name):
+    '''Don't construct a ref corrected genome if conditions met'''
+    if a["GtOrg"] == "" and a["GtFile"] == "":
+        print("WARNING: Not calling reference corrected consensus as no evaluation arguments were specified (GtOrg, GtFile)")
+        return True
+    elif bool(a["GtOrg"] == "") ^ bool(a["GtFile"] == ""):
+        print("WARNING: Not calling reference corrected consensus, both a GtOrg and GtFile need to be specified")
+        return True
+    if tar_name != a['GtOrg']:
+        print(f"Target {tar_name} is not the GT organism")
+        return True
+    return False
