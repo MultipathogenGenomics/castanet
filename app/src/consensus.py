@@ -149,13 +149,16 @@ class Consensus:
               "Samtools merge, ref-adjusted consensus call (CONSENSUS.PY)")
         '''Output coverage stats for target consensuses'''
         shell(
-            f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam | grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+            f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
 
         '''Get coverage for each consensus, further filter collated bam to targets > n cov'''
         coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",
                                   names=["tar_name", "start_pos", "end_pos", "n_reads", "cov_bs", "cov", "mean_d",  "mean_b_q", "mean_m_q"])
-        coverage_filter = coverage_df[coverage_df["cov"] >=
-                                      self.a['ConsensusCoverage']]["tar_name"].tolist()
+        coverage_df = coverage_df[coverage_df["cov"]
+                                  >= self.a['ConsensusCoverage']]
+        coverage_df.to_csv(
+            f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+        coverage_filter = coverage_df["tar_name"].tolist()
         samtools_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")
         shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} > {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
