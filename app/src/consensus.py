@@ -90,14 +90,18 @@ class Consensus:
         coverage_filter = self.filter_bam_to_organism(org_name)
         self.filter_tar_consensuses(org_name, coverage_filter)
 
-        '''Re-make target alignment and consensus to filtered list, save'''
-        self.build_msa_requisites(org_name)
-        flat_consensus = self.flatten_consensus(org_name)
-        save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
-                f">{org_name}_consensus\n{flat_consensus}")
+        if len(self.target_consensuses[org_name]) > 0:
+            '''Re-make target alignment and consensus to filtered list, save'''
+            self.build_msa_requisites(org_name)
+            flat_consensus = self.flatten_consensus(org_name)
+            save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
+                    f">{org_name}_consensus\n{flat_consensus}")
 
-        '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
-        self.remap_flat_consensus(org_name)
+            '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
+            self.remap_flat_consensus(org_name)
+        else:
+            print(
+                f"INFO: No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
 
     def build_msa_requisites(self, org_name) -> None:
         '''Create fasta files containing target reference seqs and consensus seqs, for downstream MSA'''
