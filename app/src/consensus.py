@@ -72,20 +72,21 @@ class Consensus:
         '''Filter bam to organism-specific targets, further filter by coverage %'''
         # RM < TODO pad consensus seqs to ~same length?
         coverage_filter = self.filter_bam_to_organism(org_name)
-        self.filter_tar_consensuses(org_name, coverage_filter)
 
-        if len(self.target_consensuses[org_name]) > 0:
-            '''Re-make target alignment and consensus to filtered list, save'''
-            self.build_msa_requisites(org_name)
-            flat_consensus = self.flatten_consensus(org_name)
-            save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
-                    f">{org_name}_consensus\n{flat_consensus}")
-
-            '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
-            self.remap_flat_consensus(org_name)
-        else:
+        if len(coverage_filter) == 0:
             print(
                 f"INFO: No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
+            return
+
+        '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
+        self.filter_tar_consensuses(org_name, coverage_filter)
+        self.build_msa_requisites(org_name)
+        flat_consensus = self.flatten_consensus(org_name)
+        save_fa(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta",
+                f">{org_name}_consensus\n{flat_consensus}")
+
+        '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
+        self.remap_flat_consensus(org_name)
 
     def build_msa_requisites(self, org_name) -> None:
         '''Create fasta files containing target reference seqs and consensus seqs, for downstream MSA'''
@@ -155,13 +156,16 @@ class Consensus:
             f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", index=False, header=False)
         coverage_filter = coverage_df["tar_name"].tolist()
 
-        '''Index unfiltered bam, then filter for targets with sufficient coverage'''
-        samtools_index(
-            f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")
-        shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} "
-              f"> {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
+        if len(coverage_filter) == 0:
+            return []
+        else:
+            '''Index unfiltered bam, then filter for targets with sufficient coverage'''
+            samtools_index(
+                f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam")
+            shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} "
+                  f"> {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
 
-        return coverage_filter
+            return coverage_filter
 
     def filter_tar_consensuses(self, org_name, filter) -> None:
         '''Purge target consensus from master list if coverage was lower than threshold (aln is consequently remade)'''
@@ -181,8 +185,6 @@ class Consensus:
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
               f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
               f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
-        shell(f"samtools stats {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam "
-              f"> {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_stats.stats")
         find_and_delete(
             f"{self.a['folder_stem']}consensus_data/{org_name}/", f"*.fasta.*")
 
@@ -209,10 +211,10 @@ class Consensus:
         bwa_index(f"{self.fnames['temp_ref_seq']}")
 
         '''Run alignment and flatten consensus'''
-        bam_to_fastq(f"{self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam",
-                     f"{self.fnames['collated_reads_fastq']}")
-        shell(f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | "
-              f"viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --min_depth {self.a['ConsensusMinD']}")
+        shell(
+            f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam > {self.fnames['collated_reads_fastq']}")
+        shell(
+            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
 
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''
