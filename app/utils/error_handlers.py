@@ -69,12 +69,12 @@ def error_handler_filter_keep_reads(argies):
     return argies["o"], argies["ExcludeIds"], argies["RetainIds"]
 
 
-def error_handler_parse_bam_positions(argvs):
+def error_handler_parse_bam_positions(argvs) -> None:
     if len(argvs) < 2 or '-h' in argvs:
         stoperr(f'Usage: samtools view MyBamFile | {argvs[0]} \n\n')
 
 
-def error_handler_analysis(argies):
+def error_handler_analysis(argies) -> pd.DataFrame:
     '''Print errors, and exit if necessary, on bad input data. Make outdir'''
     '''Validate main infput file (dataframe from processed BAM files for this pool)'''
     if not os.path.isfile(argies["input_file"]):
@@ -117,7 +117,7 @@ def error_handler_analysis(argies):
     return df
 
 
-def error_handler_consensus_ref_corrected(a, tar_name):
+def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
     '''Don't construct a ref corrected genome if conditions met'''
     if a["GtOrg"] == "" and a["GtFile"] == "":
         print("WARNING: Not calling reference corrected consensus as no evaluation arguments were specified (GtOrg, GtFile)")
@@ -126,6 +126,7 @@ def error_handler_consensus_ref_corrected(a, tar_name):
         print("WARNING: Not calling reference corrected consensus, both a GtOrg and GtFile need to be specified")
         return True
     if tar_name != a['GtOrg']:
-        print(f"Target {tar_name} is not the GT organism")
+        print(
+            f"INFO: Target {tar_name} is not the GT organism, so ref-adjusted consensus not being built for it")
         return True
     return False
