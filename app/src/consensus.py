@@ -1,14 +1,16 @@
 import os
 import numpy as np
 import pandas as pd
+from Bio import AlignIO
+from collections import Counter
 
 from app.utils.timer import timing
 from app.utils.shell_cmds import shell, make_dir
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
-from app.utils.basic_cli_calls import (samtools_index, bwa_index, bam_to_fastq,
-                                       find_and_delete, rm)
+from app.utils.basic_cli_calls import (
+    samtools_index, bwa_index, find_and_delete, rm)
 from app.utils.error_handlers import error_handler_consensus_ref_corrected
 
 
@@ -111,28 +113,36 @@ class Consensus:
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
         '''Make flat consensus'''
-        return self.dumb_consensus(np.array([list(i[1]) for i in read_fa(
-            f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]), False)
+        # dumb_consensus = self.dumb_consensus_deprecated(np.array([list(i[1]) for i in read_fa(
+        #     f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]))
 
-    def dumb_consensus(self, aln, gap) -> str:
+        return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")
+
+    @timing
+    def dumb_consensus_deprecated(self, aln) -> str:
         '''Constrcut flat consensus to no reference'''
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
             hits, cnt = np.unique(aln[:, i], return_counts=True)
-            tophit = hits[np.argsort(cnt)[-1]]
-            if gap:
-                '''If allowing gaps, take best hit'''
-                cons += tophit
-            else:
-                '''If filling gaps (i.e. from ref)...'''
-                if hits.shape[0] == 0:
-                    '''... if gap only hit, put gap...'''
-                    cons += tophit
-                else:
-                    '''...else take best non gap hit'''
-                    cons += tophit if tophit != "-" else hits[np.argsort(
-                        cnt)[-2]]
+            cons += hits[np.argsort(cnt)[-1]]
+
         return cons
+
+    @timing
+    def dumb_consensus(self, alnfpath):
+        def base_cons(s):
+            ''' Return strict consensus for a set of bases (eg. column in alignment), ignoring gaps. '''
+            len_max = len(s)
+            s = s.replace('-', '')
+            if not s or (len(s) <= 0.1 * len_max):
+                return ('', np.nan)
+            consbase, consnum = Counter(s.lower()).most_common()[0]
+            return consbase, float(consnum)/len(s)
+
+        aln = AlignIO.read(alnfpath, 'fasta')
+        cluster_cons = pd.DataFrame(
+            pd.Series(base_cons(aln[:, i])) for i in range(len(aln[0]))).dropna()
+        return "".join(cluster_cons[0].tolist())
 
     def filter_bam_to_organism(self, org_name) -> list:
         '''Retrieve directories for all targets in org grouping for consequent BAM merge'''

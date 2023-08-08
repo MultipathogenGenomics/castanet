@@ -86,7 +86,7 @@ async def batch(payload: Batch_eval_data) -> str:
     for i in SeqNames:
         payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
         payload["ExpName"] = payload["SeqName"] = i[0]
-        run_end_to_end(payload)
+        run_end_to_end(payload, build_dir=False)
         do_eval(payload)
     return "Task complete. See terminal output for details."
 
@@ -149,9 +149,10 @@ async def end_to_end(payload: E2e_data) -> None:
 
 
 @timing
-def run_end_to_end(payload) -> str:
+def run_end_to_end(payload, build_dir=True) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(payload["ExpName"])
+    if build_dir:
+        make_exp_dir(payload["ExpName"])
     run_kraken(payload)
     do_filter_keep_reads(payload)
     run_trim(payload)
