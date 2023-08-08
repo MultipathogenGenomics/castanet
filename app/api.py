@@ -93,7 +93,9 @@ async def batch(payload: Batch_eval_data) -> str:
 
 def get_batch_seqnames(batch_name) -> list:
     fstems = []
-    for folder in os.listdir(batch_name):
+    folders = os.listdir(batch_name)
+    folders.sort()
+    for folder in folders:
         f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in os.listdir(
             f"{batch_name}/{folder}") if re.match(r"[\s\S]*?\.fastq.gz", i)]
         f = ["_".join(i.split("_")[:-1]) for i in os.listdir(
