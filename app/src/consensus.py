@@ -30,8 +30,7 @@ class Consensus:
 
     def filter_bam(self, tar_name) -> None:
         '''Filter bam to specific target, call consensus sequence for sam alignment records, grouped by target'''
-        print(f"INFO: "
-              f"Calling consensuses on all targets for: {tar_name}")
+        loginfo(f"Calling consensuses on all targets for: {tar_name}")
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
         shell(
@@ -76,8 +75,8 @@ class Consensus:
         coverage_filter = self.filter_bam_to_organism(org_name)
 
         if len(coverage_filter) == 0:
-            print(
-                f"INFO: No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
+            loginfo(
+                f"No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
             return
 
         '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
@@ -104,8 +103,7 @@ class Consensus:
 
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
-        print(f"INFO: "
-              f"making consensus alignments for target group: {org_name}")
+        loginfo(f"making consensus alignments for target group: {org_name}")
         shell(f"mafft --thread {os.cpu_count()} {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
         shell(f"mafft --thread {os.cpu_count()} --6merpair --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "

@@ -18,4 +18,4 @@ def find_and_delete(fpath, pat):
 
 
 def rm(delete, flag=""):
-    (f"rm {flag} {delete}")
+    shell(f"rm {flag} {delete}")
