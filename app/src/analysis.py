@@ -3,7 +3,7 @@ import os
 import re
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
+import plotly.express as px
 
 from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
@@ -217,20 +217,14 @@ class Analysis:
 
                 '''Save array plots as pdf if significant'''
                 if D1.mean() >= 0.1:
-                    plt.clf()
-                    plt.plot(D, label='all reads')
-                    plt.plot(D1, label='deduplicated reads', c='orange')
-                    plt.xlabel('position')
-                    plt.ylabel('number of reads')
-                    plt.legend()
-                    plt.title(
-                        f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)\n')
-                    try:
-                        plt.tight_layout()
-                    except ValueError:
-                        pass
-                    plt.savefig(
-                        f'{odir}/{probetype}-{sampleid}.png')
+                    plot_df = pd.DataFrame()
+                    plot_df["position"], plot_df["All Reads"], plot_df["Duplicated Reads"] = np.arange(
+                        0, D.shape[0]), D, D1
+                    fig = px.line(plot_df, x="position", y=[
+                                  "All Reads", "Duplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)')
+                    fig.update_layout(legend={"title_text": "", "orientation": "h", "entrywidth": 100,
+                                      "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1})
+                    fig.write_image(f'{odir}/{probetype}-{sampleid}.png')
 
                 '''Build up dictionary of depth metrics for this sample and probetype'''
                 metrics[sampleid, probetype] = (g.n.sum(), g.n.count(), n_targets, n_genes, nmax_targets, nmax_genes, nmax_probetype, npos,

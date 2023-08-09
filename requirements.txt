@@ -9,3 +9,4 @@ pre-commit==3.2.2
 Commitizen==3.3.0
 reportlab==4.0.4
 biotite==0.37.0
+plotly==5.15.0

@@ -167,9 +167,7 @@ class GenerateReport:
         summary_table.setStyle(summary_tbl_style)
         story.append(summary_table)
         '''Depth Image'''
-        story.append(self.build_logo(self.depth_fig_path, 240, 180))
-        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
-        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
+        story.append(self.build_logo(self.depth_fig_path, 300, 225))
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
 
         '''Remapped consensus Key Stats'''
