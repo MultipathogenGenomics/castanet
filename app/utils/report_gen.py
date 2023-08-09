@@ -20,7 +20,7 @@ class GenerateReport:
         self.c_stats = c_stats   # Remapped consensus
         self.m_stats = m_stats  # Mash between consensus types
         self.depth_df = pd.read_csv(
-            f"{self.a['folder_stem']}{self.a['SeqName']}_depth.csv")
+            f"{self.a['folder_stem']}{self.a['SeqName']}_depth_with_clin.csv")
         self.depth = self.depth_df[self.depth_df["probetype"]
                                    == self.a['GtOrg']]
         self.contigs_fig_path = contigs_fig_path

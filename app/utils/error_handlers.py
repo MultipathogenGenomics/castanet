@@ -81,16 +81,7 @@ def error_handler_analysis(argies) -> pd.DataFrame:
         stoperr('Unable to open input file {0}.'.format(argies["input_file"]))
 
     '''Validate sample info file'''
-    # RM < TODO Samples input disabled.
-    # if argies["Samples"] and not os.path.isfile(argies["Samples"]):
-    #     stoperr(
-    #         f'Unable to open sample data from input file {argies["Samples"]}.')
-    # with open(argies["Samples"]) as samples_inf:
-    #     samples_header_check = samples_inf.readline()
-    #     if ('sampleid' not in samples_header_check) or ('pt' not in samples_header_check) or ('rawreadnum' not in samples_header_check):
-    #         stoperr(
-    #             f'{argies["Samples"]} must contain at least the following columns: pt, sampleid, rawreadnum')
-    if argies["Clin"]:
+    if argies["Clin"] != "":
         if not os.path.isfile(argies["Clin"]):
             stoperr(
                 f'Unable to open clinical data from input file {argies["Clin"]}.')

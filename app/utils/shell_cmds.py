@@ -20,7 +20,7 @@ def sp_error_handler(out, err, name):
 
 def loginfo(s):
     '''Log Info statements to stderr'''
-    sys.stderr.write(f'  Info: {s}\n')
+    sys.stderr.write(f'  INFO: {s}\n')
 
 
 def logerr(s):

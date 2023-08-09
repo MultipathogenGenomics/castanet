@@ -5,7 +5,7 @@ from Bio import AlignIO
 from collections import Counter
 
 from app.utils.timer import timing
-from app.utils.shell_cmds import shell, make_dir
+from app.utils.shell_cmds import shell, make_dir, loginfo
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
@@ -214,8 +214,8 @@ class Consensus:
             self.a['GtFile'], self.a["SeqName"], self.a['folder_stem'])
 
         '''Save ref seq and index, then run bwa mem of ref seq vs contigs'''
-        print(f"INFO: "
-              f"generating reference-adjusted consensus for target group / reference: {tar_name} / {ref_seq[0]}")
+        loginfo(
+            f"generating reference-adjusted consensus for target group / reference: {tar_name} / {ref_seq[0]}")
         save_fa(f"{self.fnames['temp_ref_seq']}",
                 f">{ref_seq[0]}\n{ref_seq[1]}\n")
         bwa_index(f"{self.fnames['temp_ref_seq']}")

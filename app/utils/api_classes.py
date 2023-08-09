@@ -77,8 +77,6 @@ class Data_FilterFilters(BaseModel):
 class Data_AnalysisExtras(BaseModel):
     Probes: str = Query("data/probelengths_rmlst_virus_extra_ercc.csv",
                         description="CSV file containing probe length mappings. Absolute path required.")
-    Samples: str = Query("",
-                         description="CSV file containing sample data for annotations during analysis phase. Absolute path required.")
     KeepDups: bool = Query(True,
                            description='(OPTIONAL) If true, do not reassign duplicates to the sample with the majority in each duplicate cluster (Default: True).')
     Clin: Optional[str] = Query("",

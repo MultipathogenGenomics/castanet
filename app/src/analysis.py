@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import subprocess as sp
 
 from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
@@ -221,7 +222,8 @@ class Analysis:
                     plot_df["position"], plot_df["All Reads"], plot_df["Duplicated Reads"] = np.arange(
                         0, D.shape[0]), D, D1
                     fig = px.line(plot_df, x="position", y=[
-                                  "All Reads", "Duplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)')
+                                  "All Reads", "Duplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
+                                  labels={"position": "Position", "value": "Num Reads"})
                     fig.update_layout(legend={"title_text": "", "orientation": "h", "entrywidth": 100,
                                       "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1})
                     fig.write_image(f'{odir}/{probetype}-{sampleid}.png')
@@ -312,36 +314,49 @@ class Analysis:
                 f'Mean read depth per sample: \n{depth.groupby("sampleid").depth_mean.mean().to_string()}')
         return depth
 
-    def add_clin(self, req_cols_samples=['sampleid', 'pt', 'rawreadnum'], req_cols_clin=['pt', 'clin_int']):
-        ''' Add raw read numbers and any external categorical/clinical data.
-        Samples file must supply at least the following columns: {}.
+    def get_read_num(self):
+        '''Retrieve total n reads from master BAM file'''
+        # Add '-F 260' to switch to only primary aligned mapped reads
+        res = sp.run(
+            f"samtools view -c {self.output_dir}/{self.a['SeqName']}.bam", shell=True, capture_output=True)
+        return int(res.stdout.decode("utf-8").replace("\n", ""))
+
+    def add_clin(self, req_cols_clin=['pt', 'clin_int']):
+        '''Merge to create simpler metadata for each sample, including patient ID and clinical category.
         Clin file may additionally supply clinical/demographic data,
-        with at least the following columns: {}'''.format(req_cols_samples, req_cols_clin)
-        '''Raw read numbers'''
-        loginfo('Adding sample information and clinical data.')
-        samples = pd.read_csv(self.a["Samples"], dtype={'pt': str})
-        if set(req_cols_samples) & set(samples.columns) != set(req_cols_samples):
+        with at least the following columns: {}'''.format(req_cols_clin)
+        clin = pd.read_csv(self.a["Clin"], dtype={'pt': str})
+        if 'pt' not in clin.columns:
             stoperr(
-                f'Samples file {self.a["Samples"]} must contain at least the following columns: {req_cols_samples}')
-        if self.a["Clin"]:
-            '''Merge to create simpler metadata for each sample, including patient ID and clinical category'''
-            clin = pd.read_csv(self.a["Clin"], dtype={'pt': str})
-            if 'pt' not in clin.columns:
-                stoperr(
-                    f'Clin file {self.a["Clin"]} must contain at least the following columns: {req_cols_clin}')
-            if 'sampleid' in clin.columns:
-                logerr(
-                    f'Ignoring "sampleid" column from clinical info file {self.a["Clin"]}.')
-                clin.drop('sampleid', axis=1, inplace=True)
-                '''Merge sample information with participant data'''
-                samples = samples.merge(clin, on='pt', how='left')
-        cdf = self.df.merge(samples, on='sampleid', how='left')
+                f'Clin file {self.a["Clin"]} must contain at least the following columns: {req_cols_clin}')
+        if 'sampleid' in clin.columns:
+            logerr(
+                f'Ignoring "sampleid" column from clinical info file {self.a["Clin"]}.')
+            clin.drop('sampleid', axis=1, inplace=True)
+            '''Merge sample information with participant data'''
+            samples = samples.merge(clin, on='pt', how='left')
+        return samples
+
+    def add_read_d_and_clin(self, depth, req_cols_samples=['sampleid', 'pt', 'rawreadnum']):
+        ''' Add raw read numbers and any external categorical/clinical data.
+        Samples file must supply at least the following columns: {}.'''.format(req_cols_samples)
+        loginfo('Adding sample information and clinical data.')
+        read_num = self.get_read_num()
+        samples = pd.DataFrame(
+            [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
+
+        if self.a["Clin"] != "":
+            '''If supplied, merge clinical data'''
+            samples = self.add_clin(samples)
+
+        '''Merge read n (and clin data if supplied) to depth counts, return'''
+        cdf = depth.merge(samples, on='sampleid', how='left')
         cdf['readprop'] = cdf.n_reads_all/cdf.rawreadnum
         loginfo(f'Added the following columns: {list(samples.columns)}')
         loginfo(
-            f'Saving {self.a["ExpDir"]}/{self.a["ExpName"]}_depth_with_clin.csv.')
+            f'Saving {self.output_dir}{self.a["SeqName"]}_depth_with_clin.csv.')
         cdf.to_csv(
-            f'{self.a["ExpDir"]}/{self.a["ExpName"]}_depth_with_clin.csv', index=False)
+            f'{self.output_dir}{self.a["SeqName"]}_depth_with_clin.csv', index=False)
         return cdf
 
     def save_tophits(self, depth):
@@ -352,9 +367,9 @@ class Analysis:
         loginfo(tophits[['sampleid', 'probetype',
                 'clean_prop_of_reads_on_target']])
         tophits.to_csv(
-            f'{self.output_dir}/{self.a["ExpName"]}_tophit.csv', index=False)
+            f'{self.output_dir}{self.a["ExpName"]}_tophit.csv', index=False)
         loginfo(
-            f'Saved top hits to {self.output_dir}/{self.a["ExpName"]}_tophits.csv')
+            f'Saved top hits to {self.output_dir}{self.a["ExpName"]}_tophits.csv')
 
     def main(self):
         '''Entrypoint. Extract & merge probe lengths, reassign dupes if specified, then call anlysis & save'''
@@ -365,9 +380,7 @@ class Analysis:
         '''Depth calculation'''
         depth = self.add_depth(probelengths)
         '''Merge in sample info  (including total raw reads) and participant data if specified'''
-        # RM < TODO DISABLED as might not need; can derive most information from raw data if needed
-        # if self.a["Clin"]:
-        #     depth = self.add_clin(depth)
+        depth = self.add_read_d_and_clin(depth)
         self.save_tophits(depth)
         self.df = self.df.merge(
             depth, on=['sampleid', 'probetype'], how='left')
