@@ -1,8 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
+import pickle as p
 from Bio import AlignIO
 from collections import Counter
+import plotly.express as px
 
 from app.utils.timer import timing
 from app.utils.shell_cmds import shell, make_dir, loginfo
@@ -10,7 +12,7 @@ from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
 from app.utils.basic_cli_calls import (
-    samtools_index, bwa_index, find_and_delete, rm)
+    samtools_index, bwa_index, find_and_delete, rm, samtools_read_num)
 from app.utils.error_handlers import error_handler_consensus_ref_corrected
 
 
@@ -26,6 +28,7 @@ class Consensus:
         self.probe_names = pd.read_csv(
             f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
         self.fnames = get_consensus_fnames(self.a)
+        self.eval_stats = {}
         make_dir(f"mkdir {self.a['folder_stem']}consensus_data/")
 
     def filter_bam(self, tar_name) -> None:
@@ -67,11 +70,12 @@ class Consensus:
 
     def call_flat_consensus(self, org_name) -> None:
         '''Create consensus sequences'''
+        '''Make folder and dictionary key for supplementary stats'''
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
             shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
+        self.eval_stats[org_name] = {}
 
         '''Filter bam to organism-specific targets, further filter by coverage %'''
-        # RM < TODO pad consensus seqs to ~same length?
         coverage_filter = self.filter_bam_to_organism(org_name)
 
         if len(coverage_filter) == 0:
@@ -89,6 +93,13 @@ class Consensus:
         '''Remap to re-made flat consensus, to make `re-mapped consensus`'''
         self.remap_flat_consensus(org_name)
 
+        '''Dump any additional stats to pickle'''
+        self.dump_stats(org_name)
+
+    def dump_stats(self, org_name) -> None:
+        with open(f"{self.a['folder_stem']}consensus_data/{org_name}/supplementary_stats.p", 'wb') as f:
+            p.dump(self.eval_stats[org_name], f, protocol=p.HIGHEST_PROTOCOL)
+
     def build_msa_requisites(self, org_name) -> None:
         '''Create fasta files containing target reference seqs and consensus seqs, for downstream MSA'''
         ref_seq_names = list(set([i["tar_name"].replace(">", "")
@@ -104,21 +115,18 @@ class Consensus:
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        shell(f"mafft --thread {os.cpu_count()} {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
-        shell(f"mafft --thread {os.cpu_count()} --6merpair --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
-        '''Make flat consensus'''
-        # dumb_consensus = self.dumb_consensus_deprecated(np.array([list(i[1]) for i in read_fa(
-        #     f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")]))
-
-        return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln")
+        '''Return flat consensus'''
+        return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
 
     @timing
     def dumb_consensus_deprecated(self, aln) -> str:
-        '''Constrcut flat consensus to no reference'''
+        '''DEPRECATED. Constrcut flat consensus to no reference'''
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
             hits, cnt = np.unique(aln[:, i], return_counts=True)
@@ -127,7 +135,8 @@ class Consensus:
         return cons
 
     @timing
-    def dumb_consensus(self, alnfpath):
+    def dumb_consensus(self, alnfpath, org_name) -> list:
+        '''Produce an un-referenced/`flat` consensus sequence for file of target and target ref seqs'''
         def base_cons(s):
             ''' Return strict consensus for a set of bases (eg. column in alignment), ignoring gaps. '''
             len_max = len(s)
@@ -137,10 +146,19 @@ class Consensus:
             consbase, consnum = Counter(s.lower()).most_common()[0]
             return consbase, float(consnum)/len(s)
 
-        aln = AlignIO.read(alnfpath, 'fasta')
+        aln = AlignIO.read(
+            f"{alnfpath}{org_name}_consensus_alignment.aln", 'fasta')
         cluster_cons = pd.DataFrame(
             pd.Series(base_cons(aln[:, i])) for i in range(len(aln[0]))).dropna()
-        return "".join(cluster_cons[0].tolist())
+
+        '''Plot identity for QC'''
+        cluster_cons.columns = ['cons', 'ident']
+        cluster_cons.ident.rolling(120).mean().plot()
+        fig = px.line(x=cluster_cons.index,
+                      y=cluster_cons["ident"], title="Flat consensus identity")
+        fig.write_image(f"{alnfpath}{org_name}_flat_consensus_identity.png")
+
+        return "".join(cluster_cons["cons"].tolist())
 
     def filter_bam_to_organism(self, org_name) -> list:
         '''Retrieve directories for all targets in org grouping for consequent BAM merge'''
@@ -173,6 +191,9 @@ class Consensus:
             shell(f"samtools view -b {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{i}' for i in coverage_filter])} "
                   f"> {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam")
 
+            '''Estimate number of mapped reads in the final alignment (get just primary mapped reads, div 2 to average F & R strands)'''
+            self.eval_stats[org_name]["filtered_collated_read_num"] = round(samtools_read_num(
+                f"{self.a['folder_stem']}consensus_data/{org_name}", "collated_reads", '-F 0x904 -q 20') / 2)
             return coverage_filter
 
     def filter_tar_consensuses(self, org_name, filter) -> None:

@@ -1,6 +1,7 @@
 import os
 import time
 import pandas as pd
+import pickle as p
 
 from app.utils.shell_cmds import make_dir, shell
 from app.utils.system_messages import end_sec_print
@@ -20,6 +21,7 @@ class Evaluate:
                           f">{self.a['GtOrg']}_remapped_consensus", f">{self.a['GtOrg']}_gold_standard_consensus"]
         self.contig_graph_fname = f"{self.a['folder_stem']}evaluation/contig_vs_ref_consensus_alignments.png"
         self.consen_graph_fname = f"{self.a['folder_stem']}evaluation/consensus_vs_true_seq.png"
+        self.additional_stats = {}
         make_dir(
             f"mkdir {self.a['folder_stem']}evaluation/ {self.a['folder_stem']}evaluation/seqs/")
 
@@ -42,6 +44,9 @@ class Evaluate:
             '''Remove reference and ref-adjusted seqs if GT not present'''
             del(all_seqs[-1])
             del(all_seqs[0])
+
+        self.additional_stats["gt_len"] = len(all_seqs[-1][1])
+        self.additional_stats["remap_len"] = len(all_seqs[-2][1])
 
         '''Rename seqs, save individual fa, build mash sketch and combined fa (for aln)'''
         for i in range(len(all_seqs)):
@@ -99,8 +104,14 @@ class Evaluate:
                                                              == 0) & (c_df["T"] == 0) & (c_df["G"] == 0)].shape[0]
         coverage = round(
             (1 - ((missing + ambigs) / c_df["Total"].sum())) * 100, 2)
-        c_stats = [["mapped_bases", "gc_pc", "missing_bs", "ambig_bs", "cov"],
-                   [c_df["Total"].sum(), gc, missing, ambigs, coverage]]
+        '''Get additional stats on consensus remapping'''
+        with open(f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/supplementary_stats.p", 'rb') as f:
+            self.additional_stats["n_remapped_seqs"] = p.load(
+                f)["filtered_collated_read_num"]
+        cons_vs_ref_len = round(
+            (self.additional_stats['remap_len'] / self.additional_stats['gt_len']) * 100)
+        c_stats = [["n_bases", "n_seqs", "len_%", "gc_pc", "missing_bs", "ambig_bs", "cov"],
+                   [c_df["Total"].sum(), self.additional_stats['n_remapped_seqs'], cons_vs_ref_len, gc, missing, ambigs, coverage]]
 
         '''Grab MASH output, put in dataframe, save'''
         m_df = pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_true_genome.csv",
@@ -108,6 +119,7 @@ class Evaluate:
         m_df = pd.concat([m_df, pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv",
                                             delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])])
         m_df.to_csv(f"{self.a['folder_stem']}evaluation/mash_results_full.csv")
+
         return t_stats, c_stats, m_df
 
     def create_report(self, t_stats, c_stats, stats_df):
@@ -122,28 +134,28 @@ class Evaluate:
 
     def main(self) -> None:
         '''Retrieve all varieties of cons seq, graph'''
-        try:
-            ref_seq_present = self.get_consensus_seqs()
-            self.call_alignment()
+        # try:
+        ref_seq_present = self.get_consensus_seqs()
+        self.call_alignment()
 
-            self.call_graph(self.aln_fname, "consensus_vs_true_seq")
+        self.call_graph(self.aln_fname, "consensus_vs_true_seq")
 
-            '''Call graph on contig consensuses'''
-            self.call_graph(
-                f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+        '''Call graph on contig consensuses'''
+        self.call_graph(
+            f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
-            '''Do stats'''
-            if ref_seq_present:
-                self.call_mash_dist()
-            else:
-                self.do_unreferenced_eval()
+        '''Do stats'''
+        if ref_seq_present:
+            self.call_mash_dist()
+        else:
+            self.do_unreferenced_eval()
 
-            t_stats, c_stats, stats_df = self.collate_stats()
-            self.create_report(t_stats, c_stats, stats_df)
+        t_stats, c_stats, stats_df = self.collate_stats()
+        self.create_report(t_stats, c_stats, stats_df)
 
-        except Exception as e:
-            end_sec_print(
-                f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+        # except Exception as e:
+        #     end_sec_print(
+        #         f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
         end_sec_print("Eval complete")
 
 

@@ -4,12 +4,12 @@ import re
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import subprocess as sp
 
 from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr
 from app.utils.error_handlers import error_handler_analysis
+from app.utils.basic_cli_calls import samtools_read_num
 
 
 class Analysis:
@@ -314,13 +314,6 @@ class Analysis:
                 f'Mean read depth per sample: \n{depth.groupby("sampleid").depth_mean.mean().to_string()}')
         return depth
 
-    def get_read_num(self):
-        '''Retrieve total n reads from master BAM file'''
-        # Add '-F 260' to switch to only primary aligned mapped reads
-        res = sp.run(
-            f"samtools view -c {self.output_dir}/{self.a['SeqName']}.bam", shell=True, capture_output=True)
-        return int(res.stdout.decode("utf-8").replace("\n", ""))
-
     def add_clin(self, req_cols_clin=['pt', 'clin_int']):
         '''Merge to create simpler metadata for each sample, including patient ID and clinical category.
         Clin file may additionally supply clinical/demographic data,
@@ -341,7 +334,7 @@ class Analysis:
         ''' Add raw read numbers and any external categorical/clinical data.
         Samples file must supply at least the following columns: {}.'''.format(req_cols_samples)
         loginfo('Adding sample information and clinical data.')
-        read_num = self.get_read_num()
+        read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
         samples = pd.DataFrame(
             [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
 

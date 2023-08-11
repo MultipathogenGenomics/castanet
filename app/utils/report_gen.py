@@ -86,12 +86,14 @@ class GenerateReport:
         return vs_genome_data, vs_gs_data
 
     def get_summary_stats(self):
-        stats = [["run_time", "n_ref_org_reads", "mean_depth", "mean_depth_std"]]
+        stats = [["run_time", "n_reads", "n_reads_dedup",
+                  "read_prop", "mean_depth(std)"]]
         stats.append([
             f"{round((time.time() - self.a['StartTime']) / 60)} min",
             f"{int(self.depth['n_reads_all'].iloc[0])}",
-            f"{round(self.depth['depth_mean'].iloc[0])}",
-            f"{round(self.depth['depth_std'].iloc[0])}"
+            f"{int(self.depth['n_reads_dedup'].iloc[0])}",
+            f"{round(float(self.depth['readprop'].iloc[0]), 2)}",
+            f"{round(self.depth['depth_mean'].iloc[0])} ({round(self.depth['depth_std'].iloc[0])})",
         ])
         return stats
 
@@ -160,10 +162,11 @@ class GenerateReport:
         story.append(hline)
 
         '''Run stats details'''
-        story.append(Paragraph("Run Summary", self.styles["Heading2"]))
+        story.append(
+            Paragraph("Sample reads and depth statistics", self.styles["Heading2"]))
         '''Bullet points for run stats'''
         summary_table, summary_tbl_style = self.build_table(
-            summary_data, dims=(3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm))
+            summary_data, dims=(3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm))
         summary_table.setStyle(summary_tbl_style)
         story.append(summary_table)
         '''Depth Image'''
@@ -175,7 +178,7 @@ class GenerateReport:
             "Castanet (Re-mapped) Consensus Statistics", self.styles["Heading2"]))
         '''Vs Genome table'''
         vs_gs_table, genome_tbl_style = self.build_table(
-            self.c_stats, (3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm, 3.0*cm))
+            self.c_stats, (2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm))
         vs_gs_table.setStyle(genome_tbl_style)
         story.append(vs_gs_table)
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
