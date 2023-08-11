@@ -2,11 +2,9 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import biotite.sequence.align as align
-import biotite.sequence.graphics as graphics
 import biotite.sequence.io.fasta as fasta
 
 from app.utils.utility_fns import read_fa
-from app.utils.system_messages import end_sec_print
 
 
 class SimilarityGraph:
@@ -89,7 +87,7 @@ class SimilarityGraph:
         figure.savefig(f"{self.a['out_fname']}.png")
 
     def main(self):
-        end_sec_print(
+        print(
             f"INFO: Building and graphing similarity matrix: {self.a['ref_org']}\n({self.a['out_fname']})")
         '''Load aln file'''
         seq_dict = {i[0]: i[1] for i in read_fa(f"{self.a['in_fname']}")}

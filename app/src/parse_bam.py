@@ -45,7 +45,6 @@ class Parse_bam_positions:
         match = tlen >= self.min_match_length
         improper_match = (tlen == 0) and (self.getmatchsize(
             cigar) >= self.min_match_length) and (get_gene_orgid(ref) == get_gene_orgid(ref2))
-        # RM < TODO What about improper matches where ref2 == "=" rather than having a specific id?
 
         if match or improper_match:
             '''Properly paired and match is of decent mapped length OR
@@ -108,6 +107,7 @@ class Parse_bam_positions:
                 if self.argies.Mode == "parse":
                     self.parse_bam_position(l)
                 elif self.argies.Mode == "reparse":
+                    # RM < TODO deprecate
                     self.parse_bam_position(l)
                 else:
                     self.filter_bam(l, reads_to_drop)

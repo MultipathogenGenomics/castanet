@@ -18,7 +18,6 @@ def run_counts(p, api_entry=True):
     end_sec_print("Info: Generating read counts ")
     shell(
         f"""samtools view -F2048 -F4 experiments/{p['ExpName']}/{p['SeqName']}.bam > {bamview_fname}""")
-    # RM < TODO ADAPT PARSE BAM TO HANDLE RAW BAM, SKIPPING ABOVE STEP
     sp.run(  # Use subprocess run rather than Popen as complex call is a PITA
         f"python3 -m app.src.parse_bam -Mode parse -SeqName {p['SeqName']} -ExpDir {p['ExpDir']} -ExpName {p['ExpName']} | sort | uniq -c | sed s'/ /,/'g | sed s'/^[,]*//'g > experiments/{p['ExpName']}/{p['SeqName']}_PosCounts.csv", shell=True)
     shell(f"rm {bamview_fname}")
