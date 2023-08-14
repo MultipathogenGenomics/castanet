@@ -103,6 +103,10 @@ def error_handler_analysis(argies) -> pd.DataFrame:
                          names=['n', 'target_id', 'startpos', 'maplen', 'sampleid'])
     except (IOError, TypeError, pd.errors.ParserError) as e:
         stoperr(f'Failed to read dataframe from {df} : {e}')
+
+    if df.empty:
+        stoperr(f"Your Positions Count file is empty, meaning that Castanet didn't detect any significant hits in your input sample.")
+
     if argies["DepthInf"] and not os.path.isfile(argies["DepthInf"]):
         stoperr(f'Unable to open precomputed depth file {argies["DepthInf"]}.')
     return df

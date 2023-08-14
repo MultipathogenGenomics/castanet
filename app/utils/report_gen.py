@@ -178,7 +178,7 @@ class GenerateReport:
             "Castanet (Re-mapped) Consensus Statistics", self.styles["Heading2"]))
         '''Vs Genome table'''
         vs_gs_table, genome_tbl_style = self.build_table(
-            self.c_stats, (2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm))
+            self.c_stats, (2.5*cm, 2.0*cm, 1.5*cm, 1.5*cm, 2.0*cm, 2.0*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.5*cm))
         vs_gs_table.setStyle(genome_tbl_style)
         story.append(vs_gs_table)
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
