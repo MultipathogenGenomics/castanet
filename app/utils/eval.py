@@ -56,7 +56,7 @@ class Evaluate:
             rf.fuzz.ratio(all_seqs[0][1], all_seqs[-2][1]), 1)
         '''JaroWinkler distance = edit distance for transposition only'''
         self.additional_stats["jw_d"] = round(
-            rf.distance.JaroWinkler.normalized_similarity(all_seqs[0][1], all_seqs[-2][1]), 12)
+            rf.distance.JaroWinkler.normalized_similarity(all_seqs[0][1], all_seqs[-2][1]), 2)
 
         '''Rename seqs, save individual fa, build mash sketch and combined fa (for aln)'''
         for i in range(len(all_seqs)):
