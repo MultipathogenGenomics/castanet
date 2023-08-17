@@ -66,6 +66,7 @@ app = FastAPI(
 
 def process_payload(payload) -> dict:
     payload = jsonable_encoder(payload)
+    payload["NThreads"] = os.cpu_count()
     write_input_params(payload)
     return payload
 
@@ -84,10 +85,14 @@ async def batch(payload: Batch_eval_data) -> str:
     payload["StartTime"] = time.time()
     SeqNames = get_batch_seqnames(payload["BatchName"])
     for i in SeqNames:
-        payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
-        payload["ExpName"] = payload["SeqName"] = i[0]
-        run_end_to_end(payload)
-        do_eval(payload)
+        try:
+            payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
+            payload["ExpName"] = payload["SeqName"] = i[0]
+            run_end_to_end(payload)
+            do_eval(payload)
+        except Exception as ex:
+            end_sec_print(
+                f"FAILED PROCESSING SAMPLE {payload['SeqName']} WITH EXCEPTION: {ex}")
     return "Task complete. See terminal output for details."
 
 

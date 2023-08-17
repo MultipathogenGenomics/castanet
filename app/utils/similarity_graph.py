@@ -5,6 +5,7 @@ import biotite.sequence.align as align
 import biotite.sequence.io.fasta as fasta
 
 from app.utils.utility_fns import read_fa
+from app.utils.shell_cmds import stoperr
 
 
 class SimilarityGraph:
@@ -91,6 +92,9 @@ class SimilarityGraph:
             f"INFO: Building and graphing similarity matrix: {self.a['ref_org']}\n({self.a['out_fname']})")
         '''Load aln file'''
         seq_dict = {i[0]: i[1] for i in read_fa(f"{self.a['in_fname']}")}
+        if len(seq_dict) == 0:
+            stoperr(
+                "There were no sequences in the input alignment file! (Similarity Graph)")
         '''Extract codes, construct sim matrix & fill similarity scores'''
         similarities = self.construct_matrix(
             align.get_codes(fasta.get_alignment(seq_dict)))

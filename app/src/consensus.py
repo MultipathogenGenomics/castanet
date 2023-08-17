@@ -115,9 +115,9 @@ class Consensus:
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
-        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
@@ -125,8 +125,10 @@ class Consensus:
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
 
     @timing
-    def dumb_consensus_deprecated(self, aln) -> str:
+    def dumb_consensus_deprecated(self, aln, org_name) -> str:
         '''DEPRECATED. Constrcut flat consensus to no reference'''
+        aln = np.array([list(i[1]) for i in read_fa(
+            f"{aln}{org_name}_consensus_alignment.aln")])
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
             hits, cnt = np.unique(aln[:, i], return_counts=True)
@@ -214,6 +216,7 @@ class Consensus:
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
               f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
               f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+        # RM < TODO artificially(?) higher scores were initially found with bwa > samtools sort > samtools index > samtools consensus - due to incorporation of reference elements?
         find_and_delete(
             f"{self.a['folder_stem']}consensus_data/{org_name}/", f"*.fasta.*")
 
@@ -240,10 +243,8 @@ class Consensus:
         bwa_index(f"{self.fnames['temp_ref_seq']}")
 
         '''Run alignment and flatten consensus'''
-        shell(
-            f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam > {self.fnames['collated_reads_fastq']}")
-        shell(
-            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
+        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam | "
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
 
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''

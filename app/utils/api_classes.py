@@ -21,13 +21,13 @@ class Data_SeqName(BaseModel):
 
 
 class Data_AdaptP(BaseModel):
-    AdaptP: str = Query('data/all_adapters.fa',
-                        description='Location of your Trimmomatic adapter sequences - may be in your Trimmomatic path, but a backup is in the data dir.')
+    AdaptP: FilePath = Query('data/all_adapters.fa',
+                             description='Location of your Trimmomatic adapter sequences - may be in your Trimmomatic path, but a backup is in the data dir.')
 
 
 class Data_RefStem(BaseModel):
-    RefStem: str = Query("data/rmlst_virus_extra_ercc_2018.fasta",
-                         description="Path to mapping file, in fasta format.")
+    RefStem: FilePath = Query("data/rmlst_virus_extra_ercc_2018.fasta",
+                              description="Path to mapping file, in fasta format.")
 
 
 class Data_PostFilt(BaseModel):
@@ -43,11 +43,6 @@ class Data_ExpName(BaseModel):
 class Data_KrakenDir(BaseModel):
     KrakenDbDir: DirectoryPath = Query('kraken2_human_db/',
                                        description="Path to Kraken2 database for filtering human/other unwanted species reads.")
-
-
-class Data_NThreads(BaseModel):
-    NThreads: int = Query(4,
-                          description="Number of threads to doing parallel jobs on, with supported dependencies. Cannot exceed n logical CPU cores.")
 
 
 class Data_GroundTruth(BaseModel):
@@ -102,18 +97,18 @@ class Data_ConsensusParameters(BaseModel):
 
 
 class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
-               Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters,
+               Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                Data_ConsensusParameters):
     pass
 
 
 class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads, Data_FilterFilters, Data_GroundTruth,
+                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters, Data_GroundTruth,
                     Data_ConsensusParameters):
     pass
 
 
-class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir, Data_NThreads):
+class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir):
     pass
 
 
@@ -121,7 +116,7 @@ class Filter_keep_reads_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_Filte
     pass
 
 
-class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_NThreads):
+class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP):
     pass
 
 
@@ -142,7 +137,7 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
 
 
 class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_NThreads,
+                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
                       Data_FilterFilters, Data_GroundTruth, Data_ConsensusParameters):
     pass
 

@@ -68,11 +68,14 @@ class Evaluate:
 
         with open(f"{self.a['folder_stem']}evaluation/consensus_seqs.fasta", "w") as f:
             [f.write(f"{i[0]}\n{i[1]}\n") for i in all_seqs]
+
         return ref_seq_present
 
     def call_alignment(self) -> None:
         '''Build MAFFT MSA of all consensuses and "true" sequence'''
-        shell(f"mafft --thread {os.cpu_count()} {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
+        # shell(f"mafft --thread {os.cpu_count()} {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
+        #       "Mafft align consensus seqs (EVAL.PY)")
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
               "Mafft align consensus seqs (EVAL.PY)")
 
     def call_graph(self, aln_file, out_fname) -> None:
@@ -145,28 +148,28 @@ class Evaluate:
 
     def main(self) -> None:
         '''Retrieve all varieties of cons seq, graph'''
-        try:
-            ref_seq_present = self.get_consensus_seqs()
-            self.call_alignment()
+        # try:
+        ref_seq_present = self.get_consensus_seqs()
+        self.call_alignment()
 
-            self.call_graph(self.aln_fname, "consensus_vs_true_seq")
+        self.call_graph(self.aln_fname, "consensus_vs_true_seq")
 
-            '''Call graph on contig consensuses'''
-            self.call_graph(
-                f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+        '''Call graph on contig consensuses'''
+        self.call_graph(
+            f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
-            '''Do stats'''
-            if ref_seq_present:
-                self.call_mash_dist()
-            else:
-                self.do_unreferenced_eval()
+        '''Do stats'''
+        if ref_seq_present:
+            self.call_mash_dist()
+        else:
+            self.do_unreferenced_eval()
 
-            t_stats, c_stats, stats_df = self.collate_stats()
-            self.create_report(t_stats, c_stats, stats_df)
+        t_stats, c_stats, stats_df = self.collate_stats()
+        self.create_report(t_stats, c_stats, stats_df)
 
-        except Exception as e:
-            end_sec_print(
-                f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+        # except Exception as e:
+        #     end_sec_print(
+        #         f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
         end_sec_print("Eval complete")
 
 
