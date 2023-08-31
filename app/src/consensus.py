@@ -214,9 +214,11 @@ class Consensus:
         bwa_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
-              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem -t {self.a['NThreads']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
               f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
         # RM < TODO artificially(?) higher scores were initially found with bwa > samtools sort > samtools index > samtools consensus - due to incorporation of reference elements?
+        self.consensus_depth_fix(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv",
+                                 f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
         find_and_delete(
             f"{self.a['folder_stem']}consensus_data/{org_name}/", f"*.fasta.*")
 
@@ -244,7 +246,18 @@ class Consensus:
 
         '''Run alignment and flatten consensus'''
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam | "
-              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - -t {self.a['NThreads']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --out_pos_counts {self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_refadjconsensus_pos_counts.tsv")
+        self.consensus_depth_fix(
+            f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_refadjconsensus_pos_counts.tsv", ref_adj_cons_fname)
+
+    def consensus_depth_fix(self, in_fname, out_fname):
+        # RM < TODO EXPERIMENTAL - ADJUST CONSENSUSES WITH TERMINAL GAPS
+        cons = pd.read_csv(in_fname, sep="\t")
+        cons = cons[cons["Total"] > 99]  # parameterise read d
+        cons = cons.drop(columns=["Pos", "Total"])
+        cons["con"] = cons.apply(lambda x: x.idxmax(), axis=1)
+        cons["Pos"] = np.arange(1, cons.shape[0] + 1)
+        save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
 
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''
@@ -270,7 +283,7 @@ class Consensus:
             for tar_name in self.target_consensuses.keys()]
 
         '''Tidy up'''
-        self.tidy()
+        # self.tidy() # RM < TODO REENABLE #########################################################
         end_sec_print("INFO: Consensus calling complete")
 
 
