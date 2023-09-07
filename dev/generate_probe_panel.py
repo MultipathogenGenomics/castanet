@@ -39,6 +39,9 @@ class ProbeFileGen:
             else:
                 raise ValueError(f"I COULDN'T PROCESS HEADER: {header}")
 
+        if "enterovirus" in header.lower():
+            header = f'>Enterovirus-{"".join(header.split(">Enterovirus"))}'
+
         return header
 
     def qc(self) -> None:

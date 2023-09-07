@@ -78,6 +78,8 @@ class Data_AnalysisExtras(BaseModel):
                                 description='(OPTIONAL) Path to CSV file containing clinical data (must have at least following fields: pt, clin_int; the field "sampleid" if present will be ignored). Other fields will be ignored.')
     DepthInf: str = Query("",
                           description='(OPTIONAL, For regenerating full CSV with new clinical info): Path to previously generated CSV file of read depth per position for each probe, for all samples in this batch. Must contain the following fields: sampleid, target_id, depth_mean, depth_std, depth_25pc, depth_median, depth_75pc, prop_target_covered, prop_target_covered_mindepth2, prop_target_covered_mindepth5, prop_target_covered_mindepth10, udepth_mean, udepth_std, udepth_25pc, udepth_median, udepth_75pc, uprop_target_covered, uprop_target_covered_mindepth2, uprop_target_covered_mindepth5, uprop_target_covered_mindepth10')
+    SamplesFile: Optional[str] = Query("",
+                                       description="(OPTIONAL) If specified, read raw read numbers from this CSV (needs cols 'sampleid', 'pt', 'rawreadnum'). If not specified, CASTANET will read the raw read numbers from the input bam file, i.e. it will assume you haven't pre-filtered the file.")
 
 
 class Data_ConsensusParameters(BaseModel):
@@ -87,10 +89,6 @@ class Data_ConsensusParameters(BaseModel):
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
     ConsensusMapQ: float = Query(1.0,
                                  description="Minimum quality value for a target consensus to be included in the remapped consensus.")
-    GtFile: Optional[str] = Query('data/my_ground_truth.csv',
-                                  description="CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
-    GtOrg: Optional[str] = Query('Paramyxoviridae_RSV',
-                                 description="Name of target organism to measure ground truth sequence against.")
 
 
 '''Endpoint objects'''

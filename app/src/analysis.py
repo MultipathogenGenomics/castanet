@@ -39,6 +39,15 @@ class Analysis:
         Splits genename and probetype into separate cols, then does manual adjustments
         '''
         loginfo('Aggregating by organism and gene name.')
+
+        def fix_rmlst(row):
+            if "bact0" in str(row["target_id"]).lower():
+                return f'BACT{"".join(row.target_id.split("BACT")[1:])}'
+            else:
+                return row["target_id"]
+
+        pdf["target_id"] = pdf.apply(
+            lambda x: fix_rmlst(x), axis=1)  # RM < TODO TEST
         pdf['genename'] = pdf.target_id.apply(
             lambda x: x.replace('_', '-').split('-')[0])
         pdf.loc[pdf.target_id == 'roseolovirus_allrecords_cluster_1',
@@ -62,6 +71,7 @@ class Analysis:
         pdf.loc[pdf.genename == 'Parvoviridae', 'genename'] = pdf.loc[pdf.genename ==
                                                                       'Parvoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
         pdf['probetype'] = pdf.genename
+        # RM < TODO MODIFY FOR NEW FORMAT
         pat = re.compile('BACT[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)')
         backup_pat = re.compile('BACT[0-9]+_[0-9]+_[A-Z]+_([A-Za-z_]+)')
 
@@ -332,11 +342,22 @@ class Analysis:
 
     def add_read_d_and_clin(self, depth, req_cols_samples=['sampleid', 'pt', 'rawreadnum']):
         ''' Add raw read numbers and any external categorical/clinical data.
-        Samples file must supply at least the following columns: {}.'''.format(req_cols_samples)
+        If specified, samples file must supply at least the following columns: {}.
+        If not specified, infer raw read num from input bam (assumes no prior filtering!!)'''.format(req_cols_samples)
         loginfo('Adding sample information and clinical data.')
-        read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
-        samples = pd.DataFrame(
-            [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
+        if self.a["SamplesFile"] != "":
+            loginfo(
+                f"Reading raw read number from supplied file {self.a['SamplesFile']}")
+            try:
+                samples = pd.read_csv(self.a["SamplesFile"])
+            except Exception as ex:
+                raise FileNotFoundError(
+                    f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
+        else:
+            loginfo(f"Inferring raw read number from bam file")
+            read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
+            samples = pd.DataFrame(
+                [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
 
         if self.a["Clin"] != "":
             '''If supplied, merge clinical data'''
