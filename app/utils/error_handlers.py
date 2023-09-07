@@ -114,6 +114,9 @@ def error_handler_analysis(argies) -> pd.DataFrame:
 
 def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
     '''Don't construct a ref corrected genome if conditions met'''
+    if not "GtOrg" in a.keys() and not "GtFile" in a.keys():
+        print("WARNING: Not calling reference corrected consensus as no evaluation arguments were specified (GtOrg, GtFile)")
+        return True
     if a["GtOrg"] == "" and a["GtFile"] == "":
         print("WARNING: Not calling reference corrected consensus as no evaluation arguments were specified (GtOrg, GtFile)")
         return True
