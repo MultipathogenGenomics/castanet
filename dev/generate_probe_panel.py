@@ -17,16 +17,20 @@ class ProbeFileGen:
         self.files = os.listdir(self.stem)
         self.all_seqs = []
         self.master_seq_counter = 0
-        self.stop_words = [["_mafft", ""], ["_consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
-                           [",", ""], [" ", "-"], [".mafft", ""]]
+        self.stop_words = [[".mafft_consensus", ""], ["_mafft", ""], ["_consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
+                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""]]
+        self.split_names = [
+            "enterovirus", "influenza"
+        ]
 
     def header_cleaner(self, header) -> str:
         '''Remove stop words, re-organise headers with rMLST gene first with primary org'''
+
         for i in self.stop_words:
             '''Stop word removal'''
             header = header.replace(i[0], i[1])
 
-        if header[0:5] == ">BACT":
+        if header[0:5].lower() == ">bact":
             '''If rMLST gene first, reorganise...'''
             species_match = re.findall(
                 r"_[A-Z]{1}[a-z]*-[0-9]*_[a-z]*", header.replace("|", "_"))
@@ -34,15 +38,20 @@ class ProbeFileGen:
                 leading_string = re.sub(
                     r'[0-9]', '', species_match[0]).replace('_', '')
                 if len([i for i in leading_string.split('-') if not i == '']) == 1:
-                    leading_string = f'{leading_string.replace("_","")}NotDefined'
-                header = f">{leading_string}_{header.replace('>', '')}"
+                    leading_string = f'{leading_string.replace("_","")}GenericStrain'
+                header = f">{leading_string.replace('-','_')}_{header.replace('>', '')}"
             else:
                 raise ValueError(f"I COULDN'T PROCESS HEADER: {header}")
 
-        if "enterovirus" in header.lower():
-            header = f'>Enterovirus-{"".join(header.split(">Enterovirus"))}'
+        elif "bact0" in header.lower() and not header[0:5].lower() == ">bact":
+            header = header.replace("-", "_")
 
-        return header
+        for j in self.split_names:
+            '''Split subtypes from name if format: OrganismA'''
+            if j in header:
+                header = f'>{j}_{"".join(header.split(f">{header}"))}'
+
+        return header.lower()
 
     def qc(self) -> None:
         '''Raise error if duplicate entries or gaps found'''
@@ -51,8 +60,9 @@ class ProbeFileGen:
                                                           for i in self.all_seqs]
         deduped_names = set(seq_names)
         if len(deduped_names) != len(seq_names):
+            import collections
             raise ValueError(
-                f"I found duplicate probe name/s: {[i for i in seq_names if i not in deduped_names]}. Please fix before re-trying.")
+                f"I found duplicate probe name/s: {[i for i, c in collections.Counter(seq_names).items() if c > 1]}. Please fix before re-trying.")
         if len(seq_names) != len(seqs):
             raise ValueError(
                 f"Unequal number of sequences and headers. Please fix and run again.")

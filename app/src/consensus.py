@@ -64,6 +64,8 @@ class Consensus:
         match = self.probe_names.iloc[np.where(
             np.isin(self.probe_names["target_id"], ref.replace(">", "")))[0]]
         if match.empty:
+            print(
+                f"WARNING: Couldn't match reads to probe name: {self.probe_names['target_id']}")
             return f"Unmatched"
         else:
             return f"{match['probetype'].item()}"
@@ -71,8 +73,6 @@ class Consensus:
     def call_flat_consensus(self, org_name) -> None:
         '''Create consensus sequences'''
         '''Make folder and dictionary key for supplementary stats'''
-        if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
-            shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
         self.eval_stats[org_name] = {}
 
         '''Filter bam to organism-specific targets, further filter by coverage %'''
@@ -82,6 +82,9 @@ class Consensus:
             loginfo(
                 f"No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
             return
+
+        if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
+            shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
         '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
         self.filter_tar_consensuses(org_name, coverage_filter)

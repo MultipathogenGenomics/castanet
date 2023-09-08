@@ -19,6 +19,7 @@ class Analysis:
         if api_entry:
             self.a["input_file"] = f"{self.output_dir}/{self.a['SeqName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
+        self.df["target_id"] = self.df["target_id"].str.lower()
 
     def add_probelength(self):
         '''Add length of target_id to each row of master df after splitting probelength data.'''
@@ -41,39 +42,50 @@ class Analysis:
         loginfo('Aggregating by organism and gene name.')
 
         def fix_rmlst(row):
+            '''Converts any name with rmlst "BACT0xxx" name to Castanet format (where BACT leads title)'''
+            row["target_id"] = re.sub(
+                r'true_', '', row["target_id"])  # Fix for 2018 probe set alteromonas with
             if "bact0" in str(row["target_id"]).lower():
-                return f'BACT{"".join(row.target_id.split("BACT")[1:])}'
+                return f'bact{"".join(row.target_id.split("bact0")[1:])}'
             else:
                 return row["target_id"]
 
+        '''Apply normalisation to both probe and master dataframes to allow for different probe name conventions'''
+        pdf['target_id'] = pdf['target_id'].str.lower()
         pdf["target_id"] = pdf.apply(
-            lambda x: fix_rmlst(x), axis=1)  # RM < TODO TEST
+            lambda x: fix_rmlst(x), axis=1)
+        self.df["target_id"] = self.df.apply(
+            lambda x: fix_rmlst(x), axis=1)
+
         pdf['genename'] = pdf.target_id.apply(
             lambda x: x.replace('_', '-').split('-')[0])
+        pdf['genename'] = pdf['genename'].str.lower()
+
+        pdf["genename"] = pdf.apply(lambda x: x["genename"].lower(), axis=1)
+        '''More precise definition for the different virus types'''
         pdf.loc[pdf.target_id == 'roseolovirus_allrecords_cluster_1',
                 'genename'] = 'HHV7_roseolovirus_allrecords_cluster_1'
         pdf.loc[pdf.target_id == 'roseolovirus_allrecords_cluster_2',
                 'genename'] = 'HHV6_roseolovirus_allrecords_cluster_2'
-
-        '''More precise definition for the different virus types'''
         pdf.loc[pdf.genename == 'enterovirus', 'genename'] = pdf.loc[pdf.genename ==
                                                                      'enterovirus'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Coronaviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                       'Coronaviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:3]))
-        pdf.loc[pdf.genename == 'Adenoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Adenoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Flaviviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Flaviviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Influenza', 'genename'] = pdf.loc[pdf.genename ==
-                                                                   'Influenza'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Paramyxoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                         'Paramyxoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Parvoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Parvoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'coronaviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                       'coronaviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:3]))
+        pdf.loc[pdf.genename == 'adenoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'adenoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'flaviviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'flaviviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'influenza', 'genename'] = pdf.loc[pdf.genename ==
+                                                                   'influenza'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'paramyxoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                         'paramyxoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'parvoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'parvoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
         pdf['probetype'] = pdf.genename
-        # RM < TODO MODIFY FOR NEW FORMAT
-        pat = re.compile('BACT[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)')
-        backup_pat = re.compile('BACT[0-9]+_[0-9]+_[A-Z]+_([A-Za-z_]+)')
+        pdf["probetype"] = pdf["probetype"].str.lower()
+
+        pat = re.compile('bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)')
+        backup_pat = re.compile('bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)')
 
         def _pat_search(s, pat=pat, backup_pat=backup_pat):
             '''Private function to return empty string instead of error when pattern is not matched.'''
@@ -84,20 +96,22 @@ class Analysis:
                 return ''
             return '_'.join(res[0])
 
-        pdf.loc[pdf.genename.str.startswith('BACT'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(
-            'BACT')].target_id.apply(_pat_search)
+        pdf.loc[pdf.genename.str.startswith('bact'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(
+            'bact')].target_id.apply(_pat_search)
+
         '''Streptococcus mitis group (pneumo, mitis, oralis) are cross-mapping, so classify as S. pneumoniae all targets that are found in S.pneumo at least once in the database'''
-        pdf.loc[(pdf.target_id.apply(lambda x: 'pneumoniae' in x)) & (pdf.probetype.isin(('Streptococcus_pneumoniae',
-                                                                                          'Streptococcus_pseudopneumoniae', 'Streptococcus_mitis', 'Streptococcus_oralis'))), 'probetype'] = 'Streptococcus_pneumoniae'
+        pdf.loc[(pdf.target_id.apply(lambda x: 'pneumoniae' in x)) & (pdf.probetype.isin(('streptococcus_pneumoniae',
+                                                                                          'streptococcus_pseudopneumoniae', 'streptococcus_mitis', 'streptococcus_oralis'))), 'probetype'] = 'streptococcus_pneumoniae'
         '''Streptococcus_agalactiae and Streptococcus_pyogenes cross-map as well, aggregate them'''
         pdf.loc[(pdf.target_id.apply(lambda x: 'pyogenes' in x or 'agalactiae' in x)) & (pdf.probetype.isin(
-            ('Streptococcus_pyogenes', 'Streptococcus_agalactiae'))), 'probetype'] = 'Streptococcus_agalactiae_pyogenes'
+            ('Streptococcus_pyogenes', 'Streptococcus_agalactiae'))), 'probetype'] = 'streptococcus_agalactiae_pyogenes'
         '''Enterobacteriacae are not distinguishable at this level so group them all'''
-        pdf.loc[pdf.probetype.apply(lambda x: x.startswith('Escherichia') or x.startswith(
-            'Klebsiella') or x.startswith('Enterobacter')), 'probetype'] = 'Enterobacteriaceae'
+        pdf.loc[pdf.probetype.apply(lambda x: x.startswith('escherichia') or x.startswith(
+            'klebsiella') or x.startswith('enterobacter')), 'probetype'] = 'enterobacteriaceae'
         loginfo(
             f'Organism and gene summary: {pdf.probetype.nunique()} organisms, up to {pdf.groupby("probetype").genename.nunique().max()} genes each.')
         pdf.to_csv(f"{self.output_dir}/probe_aggregation.csv")
+
         return pdf
 
     def reassign_dups(self):
