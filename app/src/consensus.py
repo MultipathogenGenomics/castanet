@@ -34,10 +34,27 @@ class Consensus:
     def filter_bam(self, tar_name) -> None:
         '''Filter bam to specific target, call consensus sequence for sam alignment records, grouped by target'''
         loginfo(f"Calling consensuses on all targets for: {tar_name}")
+        group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
-              f"> {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam")
-        shell(
-            f"samtools consensus --call-fract 0.9 --min-depth {self.a['ConsensusMinD']} -f fasta {self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
+              f"> {group_bam_fname}")
+        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name}($|\s)'",
+                    "Coverage, consensus filter bam", ret_output=True)
+        try:
+            out = out.decode().replace("\n", "").split("\t")[6:9]
+        except Exception as ex:
+            raise ValueError(
+                f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
+        assert len(
+            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, does the target name match the search term?"
+
+        if float(out[0]) < self.a['ConsensusMinD'] or float(out[2]) < self.a["ConsensusMapQ"]:
+            '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
+            shell(f"rm -r {self.a['folder_stem']}grouped_reads/{tar_name}/")
+            return
+        else:
+            '''Else, call consensus on this target'''
+            shell(
+                f"samtools consensus --call-fract 0.9 --min-depth {self.a['ConsensusMinD']} -f fasta {group_bam_fname} -o {self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta")
 
     def collate_consensus_seqs(self, tar_name) -> None:
         '''Read and collate consensus seqs from per target to per organism'''
@@ -62,8 +79,10 @@ class Consensus:
     def aggregate_to_probename(self, ref) -> str:
         '''Group targets to organism via probe name (compiled in analysis.py)'''
         match = self.probe_names.iloc[np.where(
-            np.isin(self.probe_names["target_id"], ref.replace(">", "")))[0]]
+            np.isin(self.probe_names["orig_target_id"], ref.replace(">", "")))[0]]
         if match.empty:
+            print(
+                f"WARNING: Couldn't match reads to probe name: {self.probe_names['target_id']}")
             return f"Unmatched"
         else:
             return f"{match['probetype'].item()}"
@@ -71,9 +90,9 @@ class Consensus:
     def call_flat_consensus(self, org_name) -> None:
         '''Create consensus sequences'''
         '''Make folder and dictionary key for supplementary stats'''
+        self.eval_stats[org_name] = {}
         if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
             shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
-        self.eval_stats[org_name] = {}
 
         '''Filter bam to organism-specific targets, further filter by coverage %'''
         coverage_filter = self.filter_bam_to_organism(org_name)
@@ -115,9 +134,14 @@ class Consensus:
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        #       "Mafft align ref seqs (CONSENSUS.PY)")
+        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
+        #       f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+        #       "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
-        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
+        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
 
@@ -125,8 +149,10 @@ class Consensus:
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
 
     @timing
-    def dumb_consensus_deprecated(self, aln) -> str:
+    def dumb_consensus_deprecated(self, aln, org_name) -> str:
         '''DEPRECATED. Constrcut flat consensus to no reference'''
+        aln = np.array([list(i[1]) for i in read_fa(
+            f"{aln}{org_name}_consensus_alignment.aln")])
         cons, len_max = "", aln.shape[1]
         for i in range(len_max):
             hits, cnt = np.unique(aln[:, i], return_counts=True)
@@ -153,7 +179,7 @@ class Consensus:
 
         '''Plot identity for QC'''
         cluster_cons.columns = ['cons', 'ident']
-        cluster_cons.ident.rolling(120).mean().plot()
+        cluster_cons["ident"].rolling(120).mean().plot()
         fig = px.line(x=cluster_cons.index,
                       y=cluster_cons["ident"], title="Flat consensus identity")
         fig.write_image(f"{alnfpath}{org_name}_flat_consensus_identity.png")
@@ -171,7 +197,7 @@ class Consensus:
               "Samtools merge, ref-adjusted consensus call (CONSENSUS.PY)")
         '''Output coverage stats for target consensuses'''
         shell(f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | "
-              f"grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+              f"grep -E '{'|'.join(self.probe_names[self.probe_names['probetype'] == org_name]['orig_target_id'].tolist())}' > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
 
         '''Get coverage for each consensus, filter collated bam by consensus coverage and map q'''
         coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",
@@ -212,8 +238,10 @@ class Consensus:
         bwa_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
-              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem -t {self.a['NThreads']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
               f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+        self.fix_terminal_gaps(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv",
+                               f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
         find_and_delete(
             f"{self.a['folder_stem']}consensus_data/{org_name}/", f"*.fasta.*")
 
@@ -226,6 +254,7 @@ class Consensus:
 
         '''Set dynamic fnames, make folders'''
         ref_adj_cons_fname = f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_ref_adjusted_consensus.fasta"
+        outcounts_fname = f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_refadjconsensus_pos_counts.tsv"
         shell(f"mkdir {self.fnames['temp_folder']}")
 
         '''Retrieve GT seq'''
@@ -240,10 +269,19 @@ class Consensus:
         bwa_index(f"{self.fnames['temp_ref_seq']}")
 
         '''Run alignment and flatten consensus'''
-        shell(
-            f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam > {self.fnames['collated_reads_fastq']}")
-        shell(
-            f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} {self.fnames['collated_reads_fastq']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname}")
+        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam | "
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - -t {self.a['NThreads']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --out_pos_counts {outcounts_fname}")
+        self.fix_terminal_gaps(outcounts_fname, ref_adj_cons_fname)
+
+    def fix_terminal_gaps(self, in_fname, out_fname) -> None:
+        # RM < TODO EXPERIMENTAL - ADJUST CONSENSUSES WITH TERMINAL GAPS
+        # RM < TODO AMEND, ADJUST TO ONLY LEADING OR TRAILING
+        cons = pd.read_csv(in_fname, sep="\t")
+        cons = cons[cons["Total"] > 99]  # Trim entries to this read d
+        cons = cons.drop(columns=["Pos", "Total"])
+        cons["con"] = cons.apply(lambda x: x.idxmax(), axis=1)
+        cons["Pos"] = np.arange(1, cons.shape[0] + 1)
+        save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
 
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''

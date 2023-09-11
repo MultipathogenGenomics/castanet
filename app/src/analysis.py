@@ -7,7 +7,7 @@ import plotly.express as px
 
 from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
-from app.utils.shell_cmds import loginfo, stoperr, logerr
+from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import samtools_read_num
 
@@ -19,6 +19,7 @@ class Analysis:
         if api_entry:
             self.a["input_file"] = f"{self.output_dir}/{self.a['SeqName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
+        self.df["target_id"] = self.df["target_id"].str.lower()
 
     def add_probelength(self):
         '''Add length of target_id to each row of master df after splitting probelength data.'''
@@ -39,55 +40,113 @@ class Analysis:
         Splits genename and probetype into separate cols, then does manual adjustments
         '''
         loginfo('Aggregating by organism and gene name.')
+
+        def fix_rmlst(row):
+            '''Converts any name with rmlst "BACT0xxx" name to Castanet format (where BACT leads title)'''
+            row["target_id"] = re.sub(
+                r'true_', '', row["target_id"])  # Fix for 2018 probe set proclivity for true_ pattern
+            if "bact0" in str(row["target_id"]).lower():
+                if row.target_id.split("bact0")[-1][0:3] == "000":
+                    '''if BACT is last part of name'''
+                    pat = f'bact{"".join(row.target_id.split("bact0")[-1:])}_{"".join(row.target_id.split("bact0")[:-1])[:-1]}'
+                else:
+                    pat = f'bact{"".join(row.target_id.split("bact0")[1:])}'
+                return pat.replace("__", "_")
+            else:
+                return row["target_id"]
+
+        def trim_out_fpaths(row):
+            # RM < TODO move to separate script, link to parse_bam equiv
+            key = row["orig_target_id"]
+            if len(key) > 100:
+                '''Curtail very long probe names'''
+                short_key = key[0:100].replace("|", "_")
+            else:
+                short_key = key.replace("|", "_")
+            return short_key
+
+        '''Apply normalisation to both probe and master dataframes to allow for different probe name conventions'''
+        pdf['orig_target_id'] = pdf['target_id'].copy()
+        pdf['orig_target_id'] = pdf.apply(lambda x: trim_out_fpaths(x), axis=1)
+        pdf['target_id'] = pdf['target_id'].str.lower()
+        pdf["target_id"] = pdf.apply(
+            lambda x: fix_rmlst(x), axis=1)
+        self.df["target_id"] = self.df.apply(
+            lambda x: fix_rmlst(x), axis=1)
+
         pdf['genename'] = pdf.target_id.apply(
             lambda x: x.replace('_', '-').split('-')[0])
+        pdf['genename'] = pdf['genename'].str.lower()
+
+        pdf["genename"] = pdf.apply(lambda x: x["genename"].lower(), axis=1)
+        '''More precise definition for the different virus types'''
         pdf.loc[pdf.target_id == 'roseolovirus_allrecords_cluster_1',
                 'genename'] = 'HHV7_roseolovirus_allrecords_cluster_1'
         pdf.loc[pdf.target_id == 'roseolovirus_allrecords_cluster_2',
                 'genename'] = 'HHV6_roseolovirus_allrecords_cluster_2'
-
-        '''More precise definition for the different virus types'''
         pdf.loc[pdf.genename == 'enterovirus', 'genename'] = pdf.loc[pdf.genename ==
                                                                      'enterovirus'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Coronaviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                       'Coronaviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:3]))
-        pdf.loc[pdf.genename == 'Adenoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Adenoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Flaviviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Flaviviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Influenza', 'genename'] = pdf.loc[pdf.genename ==
-                                                                   'Influenza'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Paramyxoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                         'Paramyxoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
-        pdf.loc[pdf.genename == 'Parvoviridae', 'genename'] = pdf.loc[pdf.genename ==
-                                                                      'Parvoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'coronaviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                       'coronaviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:3]))
+        pdf.loc[pdf.genename == 'adenoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'adenoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'flaviviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'flaviviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'influenza', 'genename'] = pdf.loc[pdf.genename ==
+                                                                   'influenza'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'paramyxoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                         'paramyxoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
+        pdf.loc[pdf.genename == 'parvoviridae', 'genename'] = pdf.loc[pdf.genename ==
+                                                                      'parvoviridae'].target_id.apply(lambda x: '_'.join(x.replace('_', '-').split('-')[:2]))
         pdf['probetype'] = pdf.genename
-        pat = re.compile('BACT[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)')
-        backup_pat = re.compile('BACT[0-9]+_[0-9]+_[A-Z]+_([A-Za-z_]+)')
+        pdf["probetype"] = pdf["probetype"].str.lower()
 
-        def _pat_search(s, pat=pat, backup_pat=backup_pat):
+        probe_regexes = [
+            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)'),
+            re.compile(r'bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)'),
+            re.compile(r'bact[0-9]+_([a-z]+_[a-z_]+)')
+        ]
+
+        def _pat_search(s):
             '''Private function to return empty string instead of error when pattern is not matched.'''
-            res = pat.findall(s)
+            res = probe_regexes[0].findall(s)
             if not res:
-                res = (backup_pat.findall(s),)
+                res = (probe_regexes[1].findall(s),)
+                if not res[0]:
+                    has_cluster = re.search(r'_cluster_[0-9]+', s)
+                    if has_cluster:
+                        pat = has_cluster[0]
+                        s = f"{s.replace(pat, '')}"  # {pat.replace('_','')}"
+
+                    res = (probe_regexes[2].findall(s),)
+
             if not res:
                 return ''
-            return '_'.join(res[0])
+            name = '_'.join(res[0])
+            if name[-1] == "_":
+                # Fix for old probe set with random trailing _'s
+                name = name[:-1]
+            return name
 
-        pdf.loc[pdf.genename.str.startswith('BACT'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(
-            'BACT')].target_id.apply(_pat_search)
+        pdf.loc[pdf.genename.str.startswith('bact'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(
+            'bact')].target_id.apply(_pat_search)
+
         '''Streptococcus mitis group (pneumo, mitis, oralis) are cross-mapping, so classify as S. pneumoniae all targets that are found in S.pneumo at least once in the database'''
-        pdf.loc[(pdf.target_id.apply(lambda x: 'pneumoniae' in x)) & (pdf.probetype.isin(('Streptococcus_pneumoniae',
-                                                                                          'Streptococcus_pseudopneumoniae', 'Streptococcus_mitis', 'Streptococcus_oralis'))), 'probetype'] = 'Streptococcus_pneumoniae'
+        pdf.loc[(pdf.target_id.apply(lambda x: 'pneumoniae' in x)) & (pdf.probetype.isin(('streptococcus_pneumoniae',
+                                                                                          'streptococcus_pseudopneumoniae', 'streptococcus_mitis', 'streptococcus_oralis'))), 'probetype'] = 'streptococcus_pneumoniae'
         '''Streptococcus_agalactiae and Streptococcus_pyogenes cross-map as well, aggregate them'''
         pdf.loc[(pdf.target_id.apply(lambda x: 'pyogenes' in x or 'agalactiae' in x)) & (pdf.probetype.isin(
-            ('Streptococcus_pyogenes', 'Streptococcus_agalactiae'))), 'probetype'] = 'Streptococcus_agalactiae_pyogenes'
+            ('Streptococcus_pyogenes', 'Streptococcus_agalactiae'))), 'probetype'] = 'streptococcus_agalactiae_pyogenes'
         '''Enterobacteriacae are not distinguishable at this level so group them all'''
-        pdf.loc[pdf.probetype.apply(lambda x: x.startswith('Escherichia') or x.startswith(
-            'Klebsiella') or x.startswith('Enterobacter')), 'probetype'] = 'Enterobacteriaceae'
+        pdf.loc[pdf.probetype.apply(lambda x: x.startswith('escherichia') or x.startswith(
+            'klebsiella') or x.startswith('enterobacter')), 'probetype'] = 'enterobacteriaceae'
         loginfo(
             f'Organism and gene summary: {pdf.probetype.nunique()} organisms, up to {pdf.groupby("probetype").genename.nunique().max()} genes each.')
         pdf.to_csv(f"{self.output_dir}/probe_aggregation.csv")
+
+        if pdf[pdf["probetype"] == ""].shape[0] > 0:
+            logerr(
+                f"Failure decoding the name of one or more probe types: \n {pdf[pdf['probetype'] == '']} \n Please check your probe naming conventions are compatible with Castanet")
         return pdf
 
     def reassign_dups(self):
@@ -149,13 +208,15 @@ class Analysis:
         if not depth:
             metrics = {}
             odir = f'{self.output_dir}/Depth_output'
-            if not os.path.isdir(odir):
-                try:
-                    os.mkdir(odir)
-                except OSError:
-                    odir = os.getcwd()
-                    logerr(
-                        f'Cannot create output directory {odir} for saving depth information. Proceeding with current working directory.')
+            if os.path.isdir(odir):
+                '''Clear dir if already exists'''
+                shell(f"rm -r {odir}")
+            try:
+                os.mkdir(odir)
+            except OSError:
+                odir = os.getcwd()
+                logerr(
+                    f'Cannot create output directory {odir} for saving depth information. Proceeding with current working directory.')
 
             loginfo(
                 'INFO: Calculating read depth statistics for all probes, for all samples. This is a slow step.')
@@ -219,10 +280,10 @@ class Analysis:
                 '''Save array plots as pdf if significant'''
                 if D1.mean() >= 0.1:
                     plot_df = pd.DataFrame()
-                    plot_df["position"], plot_df["All Reads"], plot_df["Duplicated Reads"] = np.arange(
+                    plot_df["position"], plot_df["All Reads"], plot_df["Deduplicated Reads"] = np.arange(
                         0, D.shape[0]), D, D1
                     fig = px.line(plot_df, x="position", y=[
-                                  "All Reads", "Duplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
+                                  "All Reads", "Deduplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
                                   labels={"position": "Position", "value": "Num Reads"})
                     fig.update_layout(legend={"title_text": "", "orientation": "h", "entrywidth": 100,
                                       "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1})
@@ -332,11 +393,22 @@ class Analysis:
 
     def add_read_d_and_clin(self, depth, req_cols_samples=['sampleid', 'pt', 'rawreadnum']):
         ''' Add raw read numbers and any external categorical/clinical data.
-        Samples file must supply at least the following columns: {}.'''.format(req_cols_samples)
+        If specified, samples file must supply at least the following columns: {}.
+        If not specified, infer raw read num from input bam (assumes no prior filtering!!)'''.format(req_cols_samples)
         loginfo('Adding sample information and clinical data.')
-        read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
-        samples = pd.DataFrame(
-            [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
+        if self.a["SamplesFile"] != "":
+            loginfo(
+                f"Reading raw read number from supplied file {self.a['SamplesFile']}")
+            try:
+                samples = pd.read_csv(self.a["SamplesFile"])
+            except Exception as ex:
+                raise FileNotFoundError(
+                    f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
+        else:
+            loginfo(f"Inferring raw read number from bam file")
+            read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
+            samples = pd.DataFrame(
+                [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
 
         if self.a["Clin"] != "":
             '''If supplied, merge clinical data'''

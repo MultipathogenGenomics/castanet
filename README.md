@@ -48,10 +48,19 @@ Dotted lines indicate optional pipeline stages.
 We assume the user has the following files to hand and wishes to create an experiment with the following parameters:
 1. Two paired read sequence files with name root ```mysample```, labelled ```..._1, ..._2```
 1. A directory for storing and saving data, called ```data/```
-1. A CSV file describing the contents of both samples in #1, containing as a minimum the fields "sampleid" (i.e. mysample_1...), "pt" and "rawreadnum", in the following direcotry ```data/samples.csv```
-1. A reference fasta file containing consensus target sequences, called ```myrefstem.fasta```
+1. A reference fasta file containing consensus target sequences (see "Supported input probe formats")
+1. A CSV file containing probe length mappings (see "Supported input probe formats")
 1. A file in your Trimmomatic directory (set up in step #2, below), contining adapter sequences specific to your NGS technique, in the following directory ```Trimmomatic-0.39/adapters/all.fa``` (this is the default value)
-1. A CSV file containing probe length mappings, in the following directory ```data/probes.csv```
+1. (Optional) A CSV file describing the contents of both samples in #1, containing as a minimum the fields "sampleid" (i.e. mysample_1...), "pt" and "rawreadnum", in the following direcotry ```data/samples.csv```. If not present, Castanet will assume that your input fasta has not been filtered and hence, will infer the max n reads from these.
+
+## Supported input probe formats
+We have not shared our probe panel as yours will differ. Castanet requires an input multifasta file containing each target probe, and an accompanying CSV file with columns: target_id (to match fasta names), target_len (integer for length of probe). We have included in the dev folder an example script for converting multiple fasta files to Castanet input files, but you will likely need to modify this to match your own data.
+
+Castanet works by aggregating reads on target at the organism level, which is achieved through filtering probe names. It currently accepts the following three formats (LOWER CASE TRANSFORMED):
+1. ```bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)```
+1. ```bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)```
+1. ```bact[0-9]+_([a-z]+_[a-z_]+)```
+
 
 ## Example workflow, using API (recommended)
 ### Run commands

@@ -9,6 +9,7 @@ from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
 from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
+from app.utils.generate_probe_files import ProbeFileGen
 from app.src.preprocess import run_kraken
 from app.src.filter_keep_reads import FilterKeepReads
 from app.src.trim_adapters import run_trim
@@ -19,7 +20,7 @@ from app.src.analysis import Analysis
 from app.src.post_filter import run_post_filter
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data,
-                                   Post_filter_data, Consensus_data, Eval_data)
+                                   Post_filter_data, Consensus_data, Eval_data, Convert_probe_data)
 
 description = """
 CASTANET is software for analysis of targeted metagenomics sequencing data, originally by tgolubch (https://github.com/tgolubch) and refactored to Python3 by mayne941 (https://github.com/Mayne941).
@@ -66,6 +67,7 @@ app = FastAPI(
 
 def process_payload(payload) -> dict:
     payload = jsonable_encoder(payload)
+    payload["NThreads"] = os.cpu_count()
     write_input_params(payload)
     return payload
 
@@ -84,10 +86,14 @@ async def batch(payload: Batch_eval_data) -> str:
     payload["StartTime"] = time.time()
     SeqNames = get_batch_seqnames(payload["BatchName"])
     for i in SeqNames:
-        payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
-        payload["ExpName"] = payload["SeqName"] = i[0]
-        run_end_to_end(payload)
-        do_eval(payload)
+        try:
+            payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
+            payload["ExpName"] = payload["SeqName"] = i[0]
+            run_end_to_end(payload)
+            do_eval(payload)
+        except Exception as ex:
+            end_sec_print(
+                f"FAILED PROCESSING SAMPLE {payload['SeqName']} WITH EXCEPTION: {ex}")
     return "Task complete. See terminal output for details."
 
 
@@ -243,3 +249,14 @@ async def post_filter(payload: Post_filter_data) -> str:
     make_exp_dir(payload["ExpName"])
     run_post_filter(payload)
     return "Task complete. See terminal output for details."
+
+
+'''Convenience functions'''
+
+
+@app.post("/convert_probes/", tags=["Convenience functions"])
+async def convertprobes(payload: Convert_probe_data) -> str:
+    payload = jsonable_encoder(payload)
+    clf = ProbeFileGen(payload)
+    clf.main()
+    return f"Task complete. Output saved to: {payload['OutFolder']}/{payload['OutFileName']}.fasta / .csv."

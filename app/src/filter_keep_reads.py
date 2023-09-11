@@ -72,7 +72,7 @@ class FilterKeepReads:
         self.reads_to_exclude, self.reads_to_keep = frozenset(
             self.reads_to_exclude), frozenset(self.reads_to_keep)
         loginfo(
-            f'Excluding {len(self.reads_to_exclude)} reads ({self.a["ExcludeIds"]} taxa specified).')
+            f'Excluding {len(self.reads_to_exclude)} reads ({len(self.a["ExcludeIds"])} taxa specified).')
         loginfo(
             f'Retaining {len(self.reads_to_keep) if self.reads_to_keep else "all other"} reads ({len(self.a["RetainIds"])} taxa specified).')
 
