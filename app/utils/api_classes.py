@@ -45,13 +45,6 @@ class Data_KrakenDir(BaseModel):
                                        description="Path to Kraken2 database for filtering human/other unwanted species reads.")
 
 
-# class Data_GroundTruth(BaseModel):
-    # GtFile: Optional[str] = Query('',
-    #                     description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
-    # GtOrg: Optional[str] = Query('',
-    #                    description="(OPTIONAL - EVAL MODE ONLY) Name of target organism to measure ground truth sequence against.")
-
-
 class Data_FilterFilters(BaseModel):
     LineageFile: Union[None, str] = Query('data/ncbi_lineages_2023-06-15.csv.gz',
                                           description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa.")
@@ -89,8 +82,8 @@ class Data_ConsensusParameters(BaseModel):
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
     ConsensusMapQ: float = Query(1.0,
                                  description="Minimum quality value for a target consensus to be included in the remapped consensus.")
-    GtFile: Optional[str] = Query('',
-                                  description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    GtFile: Optional[FilePath] = Query('',
+                                       description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
     GtOrg: Optional[str] = Query('',
                                  description="(OPTIONAL - EVAL MODE ONLY) Name of target organism to measure ground truth sequence against.")
 
@@ -105,7 +98,7 @@ class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefSte
 
 
 class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,  # Data_GroundTruth,
+                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                     Data_ConsensusParameters):
     pass
 
@@ -139,7 +132,7 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
 
 
 class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,  # Data_GroundTruth
+                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
                       Data_FilterFilters, Data_ConsensusParameters):
     pass
 
@@ -148,7 +141,7 @@ class Consensus_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_ConsensusPar
     pass
 
 
-class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,  # Data_GroundTruth,
+class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,
                 Data_ConsensusParameters):
     pass
 

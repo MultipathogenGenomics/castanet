@@ -37,8 +37,16 @@ class Consensus:
         group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {group_bam_fname}")
-        out = shell(f"samtools coverage {group_bam_fname} | grep -E '{tar_name}'",
-                    "Coverage, consensus filter bam", ret_output=True).decode().replace("\n", "").split("\t")[6:9]
+        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name}($|\s)'",
+                    "Coverage, consensus filter bam", ret_output=True)
+        try:
+            out = out.decode().replace("\n", "").split("\t")[6:9]
+        except Exception as ex:
+            raise ValueError(
+                f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
+        assert len(
+            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, does the target name match the search term?"
+
         if float(out[0]) < self.a['ConsensusMinD'] or float(out[2]) < self.a["ConsensusMapQ"]:
             '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
             shell(f"rm -r {self.a['folder_stem']}grouped_reads/{tar_name}/")
