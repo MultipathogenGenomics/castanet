@@ -7,7 +7,7 @@ import plotly.express as px
 
 from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
-from app.utils.shell_cmds import loginfo, stoperr, logerr
+from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import samtools_read_num
 
@@ -44,13 +44,30 @@ class Analysis:
         def fix_rmlst(row):
             '''Converts any name with rmlst "BACT0xxx" name to Castanet format (where BACT leads title)'''
             row["target_id"] = re.sub(
-                r'true_', '', row["target_id"])  # Fix for 2018 probe set alteromonas with
+                r'true_', '', row["target_id"])  # Fix for 2018 probe set proclivity for true_ pattern
             if "bact0" in str(row["target_id"]).lower():
-                return f'bact{"".join(row.target_id.split("bact0")[1:])}'
+                if row.target_id.split("bact0")[-1][0:3] == "000":
+                    '''if BACT is last part of name'''
+                    pat = f'bact{"".join(row.target_id.split("bact0")[-1:])}_{"".join(row.target_id.split("bact0")[:-1])[:-1]}'
+                else:
+                    pat = f'bact{"".join(row.target_id.split("bact0")[1:])}'
+                return pat.replace("__", "_")
             else:
                 return row["target_id"]
 
+        def trim_out_fpaths(row):
+            # RM < TODO move to separate script, link to parse_bam equiv
+            key = row["orig_target_id"]
+            if len(key) > 100:
+                '''Curtail very long probe names'''
+                short_key = key[0:100].replace("|", "_")
+            else:
+                short_key = key.replace("|", "_")
+            return short_key
+
         '''Apply normalisation to both probe and master dataframes to allow for different probe name conventions'''
+        pdf['orig_target_id'] = pdf['target_id'].copy()
+        pdf['orig_target_id'] = pdf.apply(lambda x: trim_out_fpaths(x), axis=1)
         pdf['target_id'] = pdf['target_id'].str.lower()
         pdf["target_id"] = pdf.apply(
             lambda x: fix_rmlst(x), axis=1)
@@ -84,17 +101,32 @@ class Analysis:
         pdf['probetype'] = pdf.genename
         pdf["probetype"] = pdf["probetype"].str.lower()
 
-        pat = re.compile('bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)')
-        backup_pat = re.compile('bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)')
+        probe_regexes = [
+            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)'),
+            re.compile(r'bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)'),
+            re.compile(r'bact[0-9]+_([a-z]+_[a-z_]+)')
+        ]
 
-        def _pat_search(s, pat=pat, backup_pat=backup_pat):
+        def _pat_search(s):
             '''Private function to return empty string instead of error when pattern is not matched.'''
-            res = pat.findall(s)
+            res = probe_regexes[0].findall(s)
             if not res:
-                res = (backup_pat.findall(s),)
+                res = (probe_regexes[1].findall(s),)
+                if not res[0]:
+                    has_cluster = re.search(r'_cluster_[0-9]+', s)
+                    if has_cluster:
+                        pat = has_cluster[0]
+                        s = f"{s.replace(pat, '')}"  # {pat.replace('_','')}"
+
+                    res = (probe_regexes[2].findall(s),)
+
             if not res:
                 return ''
-            return '_'.join(res[0])
+            name = '_'.join(res[0])
+            if name[-1] == "_":
+                # Fix for old probe set with random trailing _'s
+                name = name[:-1]
+            return name
 
         pdf.loc[pdf.genename.str.startswith('bact'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(
             'bact')].target_id.apply(_pat_search)
@@ -112,6 +144,9 @@ class Analysis:
             f'Organism and gene summary: {pdf.probetype.nunique()} organisms, up to {pdf.groupby("probetype").genename.nunique().max()} genes each.')
         pdf.to_csv(f"{self.output_dir}/probe_aggregation.csv")
 
+        if pdf[pdf["probetype"] == ""].shape[0] > 0:
+            logerr(
+                f"Failure decoding the name of one or more probe types: \n {pdf[pdf['probetype'] == '']} \n Please check your probe naming conventions are compatible with Castanet")
         return pdf
 
     def reassign_dups(self):
@@ -173,13 +208,15 @@ class Analysis:
         if not depth:
             metrics = {}
             odir = f'{self.output_dir}/Depth_output'
-            if not os.path.isdir(odir):
-                try:
-                    os.mkdir(odir)
-                except OSError:
-                    odir = os.getcwd()
-                    logerr(
-                        f'Cannot create output directory {odir} for saving depth information. Proceeding with current working directory.')
+            if os.path.isdir(odir):
+                '''Clear dir if already exists'''
+                shell(f"rm -r {odir}")
+            try:
+                os.mkdir(odir)
+            except OSError:
+                odir = os.getcwd()
+                logerr(
+                    f'Cannot create output directory {odir} for saving depth information. Proceeding with current working directory.')
 
             loginfo(
                 'INFO: Calculating read depth statistics for all probes, for all samples. This is a slow step.')

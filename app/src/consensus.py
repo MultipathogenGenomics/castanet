@@ -62,7 +62,7 @@ class Consensus:
     def aggregate_to_probename(self, ref) -> str:
         '''Group targets to organism via probe name (compiled in analysis.py)'''
         match = self.probe_names.iloc[np.where(
-            np.isin(self.probe_names["target_id"], ref.replace(">", "")))[0]]
+            np.isin(self.probe_names["orig_target_id"], ref.replace(">", "")))[0]]
         if match.empty:
             print(
                 f"WARNING: Couldn't match reads to probe name: {self.probe_names['target_id']}")
@@ -74,6 +74,8 @@ class Consensus:
         '''Create consensus sequences'''
         '''Make folder and dictionary key for supplementary stats'''
         self.eval_stats[org_name] = {}
+        if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
+            shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
         '''Filter bam to organism-specific targets, further filter by coverage %'''
         coverage_filter = self.filter_bam_to_organism(org_name)
@@ -82,9 +84,6 @@ class Consensus:
             loginfo(
                 f"No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
             return
-
-        if not os.path.isdir(f"{self.a['folder_stem']}consensus_data/{org_name}/"):
-            shell(f"mkdir {self.a['folder_stem']}consensus_data/{org_name}/")
 
         '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
         self.filter_tar_consensuses(org_name, coverage_filter)
@@ -158,7 +157,7 @@ class Consensus:
 
         '''Plot identity for QC'''
         cluster_cons.columns = ['cons', 'ident']
-        cluster_cons.ident.rolling(120).mean().plot()
+        cluster_cons["ident"].rolling(120).mean().plot()
         fig = px.line(x=cluster_cons.index,
                       y=cluster_cons["ident"], title="Flat consensus identity")
         fig.write_image(f"{alnfpath}{org_name}_flat_consensus_identity.png")
@@ -176,7 +175,7 @@ class Consensus:
               "Samtools merge, ref-adjusted consensus call (CONSENSUS.PY)")
         '''Output coverage stats for target consensuses'''
         shell(f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | "
-              f"grep {org_name} > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+              f"grep -E '{'|'.join(self.probe_names[self.probe_names['probetype'] == org_name]['orig_target_id'].tolist())}' > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
 
         '''Get coverage for each consensus, filter collated bam by consensus coverage and map q'''
         coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",

@@ -11,14 +11,15 @@ class ProbeFileGen:
     '''
 
     def __init__(self, out_fname) -> None:
-        self.stem = "data/2023_panel/raw_seqs/"
-        self.out_fname = f"{self.stem}{out_fname}.fasta"
-        self.plen_fname = f"{self.stem}{out_fname}.csv"
-        self.files = os.listdir(self.stem)
+        self.out_stem = "data/2023_panel/"
+        self.in_stem = f"{self.out_stem}raw_seqs/"
+        self.out_fname = f"{self.out_stem}{out_fname}.fasta"
+        self.plen_fname = f"{self.out_stem}{out_fname}.csv"
+        self.files = os.listdir(self.in_stem)
         self.all_seqs = []
         self.master_seq_counter = 0
-        self.stop_words = [[".mafft_consensus", ""], ["_mafft", ""], ["_consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
-                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""]]
+        self.stop_words = [[".mafft_consensus", ""], ["mafft", ""], ["consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
+                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""], [".fst", ""], ["__", ""]]
         self.split_names = [
             "enterovirus", "influenza"
         ]
@@ -29,6 +30,10 @@ class ProbeFileGen:
         for i in self.stop_words:
             '''Stop word removal'''
             header = header.replace(i[0], i[1])
+
+        if header == "":
+            '''Blanks will get removed later'''
+            return ""
 
         if header[0:5].lower() == ">bact":
             '''If rMLST gene first, reorganise...'''
@@ -50,6 +55,9 @@ class ProbeFileGen:
             '''Split subtypes from name if format: OrganismA'''
             if j in header:
                 header = f'>{j}_{"".join(header.split(f">{header}"))}'
+        while header[-1] == "_":
+            '''Fix random amount of trailing _'s'''
+            header = header[:-1]
 
         return header.lower()
 
@@ -83,7 +91,7 @@ class ProbeFileGen:
                 continue
 
             seqs = []
-            with open(f"{self.stem}{file}", "r") as f:
+            with open(f"{self.in_stem}{file}", "r") as f:
                 [seqs.append(i.replace("\n", "")) for i in f]
 
             is_first_code_block = False
