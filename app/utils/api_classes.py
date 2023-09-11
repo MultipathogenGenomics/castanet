@@ -45,11 +45,11 @@ class Data_KrakenDir(BaseModel):
                                        description="Path to Kraken2 database for filtering human/other unwanted species reads.")
 
 
-class Data_GroundTruth(BaseModel):
-    GtFile: str = Query('data/my_ground_truth.csv',
-                        description="CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
-    GtOrg: str = Query('Paramyxoviridae_RSV',
-                       description="Name of target organism to measure ground truth sequence against.")
+# class Data_GroundTruth(BaseModel):
+    # GtFile: Optional[str] = Query('',
+    #                     description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    # GtOrg: Optional[str] = Query('',
+    #                    description="(OPTIONAL - EVAL MODE ONLY) Name of target organism to measure ground truth sequence against.")
 
 
 class Data_FilterFilters(BaseModel):
@@ -89,6 +89,10 @@ class Data_ConsensusParameters(BaseModel):
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
     ConsensusMapQ: float = Query(1.0,
                                  description="Minimum quality value for a target consensus to be included in the remapped consensus.")
+    GtFile: Optional[str] = Query('',
+                                  description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    GtOrg: Optional[str] = Query('',
+                                 description="(OPTIONAL - EVAL MODE ONLY) Name of target organism to measure ground truth sequence against.")
 
 
 '''Endpoint objects'''
@@ -101,7 +105,7 @@ class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefSte
 
 
 class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters, Data_GroundTruth,
+                    Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,  # Data_GroundTruth,
                     Data_ConsensusParameters):
     pass
 
@@ -135,8 +139,8 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
 
 
 class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
-                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
-                      Data_FilterFilters, Data_GroundTruth, Data_ConsensusParameters):
+                      Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,  # Data_GroundTruth
+                      Data_FilterFilters, Data_ConsensusParameters):
     pass
 
 
@@ -144,5 +148,15 @@ class Consensus_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_ConsensusPar
     pass
 
 
-class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_GroundTruth, Data_ConsensusParameters):
+class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,  # Data_GroundTruth,
+                Data_ConsensusParameters):
     pass
+
+
+class Convert_probe_data(BaseModel):
+    InputFolder: str = Query("",
+                             description="Folder path, wherein all .fasta files will be imported, collated and converted to a Castanet-compatible probe set.")
+    OutFolder: str = Query("",
+                           description="Output path for collated probes fasta and probe length csv")
+    OutFileName: str = Query("",
+                             description="Output file name for collated probes fasta and probe length csv")
