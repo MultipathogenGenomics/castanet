@@ -37,13 +37,14 @@ class Consensus:
         group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {group_bam_fname}")
-        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name}($|\s)'",
+        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name.lower()}($|\s)'",  # RM < TODO FIX REQUIREMENT FOR LOWER
                     "Coverage, consensus filter bam", ret_output=True)
         try:
             out = out.decode().replace("\n", "").split("\t")[6:9]
         except Exception as ex:
             raise ValueError(
                 f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
+
         assert len(
             out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, does the target name match the search term?"
 
@@ -134,11 +135,6 @@ class Consensus:
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
-        #       "Mafft align ref seqs (CONSENSUS.PY)")
-        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
-        #       f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-        #       "Mafft align consensus with ref seqs (CONSENSUS.PY)")
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
@@ -275,7 +271,6 @@ class Consensus:
 
     def fix_terminal_gaps(self, in_fname, out_fname) -> None:
         # RM < TODO EXPERIMENTAL - ADJUST CONSENSUSES WITH TERMINAL GAPS
-        # RM < TODO AMEND, ADJUST TO ONLY LEADING OR TRAILING
         cons = pd.read_csv(in_fname, sep="\t")
         cons = cons[cons["Total"] > 99]  # Trim entries to this read d
         cons = cons.drop(columns=["Pos", "Total"])
@@ -308,7 +303,43 @@ class Consensus:
 
         '''Tidy up'''
         self.tidy()
+
+        '''Call CSV summary generator'''
+        [self.generate_summary(i) for i in os.listdir(
+            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i]
+
         end_sec_print("INFO: Consensus calling complete")
+
+    def generate_summary(self, org) -> None:
+        dfpath = f"{self.a['folder_stem']}/consensus_seq_stats.csv"
+        cols = ["target", "n_bases", "n_reads",
+                "gc_pc", "missing_bs", "ambig_bs", "cov"]
+
+        if not os.path.isfile(dfpath):
+            df = pd.DataFrame(columns=cols)
+        else:
+            df = pd.read_csv(dfpath)
+
+        c_df = pd.read_csv(
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_pos_counts.tsv", sep="\t")  # remapped cons stats
+        gc = round((c_df["G"].sum() + c_df["C"].sum()) /
+                   c_df["Total"].sum() * 100, 2)
+        missing = c_df[c_df["Total"] == 0].shape[0]
+        ambigs = c_df[(c_df["-"] != 0) & (c_df["A"] == 0) & (c_df["C"]
+                                                             == 0) & (c_df["T"] == 0) & (c_df["G"] == 0)].shape[0]
+        coverage = round(
+            (1 - ((missing + ambigs) / c_df["Total"].sum())) * 100, 2)
+
+        '''Get additional stats on consensus remapping'''
+        additional_stats = {}
+        with open(f"{self.a['folder_stem']}/consensus_data/{org}/supplementary_stats.p", 'rb') as f:
+            additional_stats["n_remapped_seqs"] = p.load(
+                f)["filtered_collated_read_num"]
+
+        c_stats = pd.DataFrame([[org, c_df["Total"].sum(
+        ), additional_stats['n_remapped_seqs'], gc, missing, ambigs, coverage]], columns=cols)
+        df = pd.concat([df, c_stats], axis=0, ignore_index=True)
+        df.to_csv(dfpath)
 
 
 if __name__ == "__main__":
