@@ -37,7 +37,10 @@ class Consensus:
         group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {group_bam_fname}")
-        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name.lower()}($|\s)'",  # RM < TODO FIX REQUIREMENT FOR LOWER
+        match_str = f"(^|\s){tar_name}"
+        if len(tar_name) < 99:
+            match_str = f"{match_str}($|\s)"
+        out = shell(f"samtools coverage {group_bam_fname} | grep -E '{match_str}'",
                     "Coverage, consensus filter bam", ret_output=True)
         try:
             out = out.decode().replace("\n", "").split("\t")[6:9]
@@ -46,7 +49,7 @@ class Consensus:
                 f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
 
         assert len(
-            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, does the target name match the search term?"
+            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, this usually happens because your probe naming scheme is incompatible with castanet"
 
         if float(out[0]) < self.a['ConsensusMinD'] or float(out[2]) < self.a["ConsensusMapQ"]:
             '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
@@ -286,30 +289,6 @@ class Consensus:
         find_and_delete(
             f"{self.a['folder_stem']}grouped_reads/ {self.a['folder_stem']}consensus_data/", "*.bam")
 
-    def main(self) -> None:
-        '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''
-        end_sec_print(
-            "INFO: Calling consensus sequences\nThis may take a little while...")
-        samtools_index(f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
-        for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
-            self.filter_bam(tar_name)
-
-        '''Consensus for each thing target group'''
-        [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
-            f"{self.a['folder_stem']}/grouped_reads/")]
-        [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
-        [self.call_ref_corrected_consensus(tar_name)
-            for tar_name in self.target_consensuses.keys()]
-
-        '''Tidy up'''
-        self.tidy()
-
-        '''Call CSV summary generator'''
-        [self.generate_summary(i) for i in os.listdir(
-            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i]
-
-        end_sec_print("INFO: Consensus calling complete")
-
     def generate_summary(self, org) -> None:
         dfpath = f"{self.a['folder_stem']}/consensus_seq_stats.csv"
         cols = ["target", "n_bases", "n_reads",
@@ -340,6 +319,30 @@ class Consensus:
         ), additional_stats['n_remapped_seqs'], gc, missing, ambigs, coverage]], columns=cols)
         df = pd.concat([df, c_stats], axis=0, ignore_index=True)
         df.to_csv(dfpath)
+
+    def main(self) -> None:
+        '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''
+        end_sec_print(
+            "INFO: Calling consensus sequences\nThis may take a little while...")
+        samtools_index(f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
+        for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
+            self.filter_bam(tar_name)
+
+        '''Consensus for each thing target group'''
+        [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
+            f"{self.a['folder_stem']}/grouped_reads/")]
+        [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
+        [self.call_ref_corrected_consensus(tar_name)
+            for tar_name in self.target_consensuses.keys()]
+
+        '''Tidy up'''
+        self.tidy()
+
+        '''Call CSV summary generator'''
+        [self.generate_summary(i) for i in os.listdir(
+            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i]
+
+        end_sec_print("INFO: Consensus calling complete")
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ class ProbeFileGen:
         self.all_seqs = []
         self.master_seq_counter = 0
         self.stop_words = [[".mafft_consensus", ""], ["mafft", ""], ["consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
-                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""], [".fst", ""], ["__", ""]]
+                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""], [".fst", ""], ["__", ""], ["--", "-"], ["/", "-"]]
         self.split_names = [
             "enterovirus", "influenza"
         ]
@@ -52,14 +52,16 @@ class ProbeFileGen:
             header = header.replace("-", "_")
 
         for j in self.split_names:
-            '''Split subtypes from name if format: OrganismA'''
-            if j in header:
-                header = f'>{j}_{"".join(header.split(f">{header}"))}'
+            '''SPECIFIC TO DEVELOPER'S SET - Convert EnterovirusX/InfluenzaY to _X'''
+            if j in header and not "bact" in header.lower():
+                header = header.lower()
+                header = f'>{j}_{header.split(j)[1].replace("_","").replace("-","")}_{j}{"".join(header.split(j)[2:])}'
+
         while header[-1] == "_":
             '''Fix random amount of trailing _'s'''
             header = header[:-1]
 
-        return header.lower()
+        return header.lower().replace("--", "-").replace("|", "-")
 
     def qc(self) -> None:
         '''Raise error if duplicate entries or gaps found'''

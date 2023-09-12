@@ -102,7 +102,7 @@ class Analysis:
         pdf["probetype"] = pdf["probetype"].str.lower()
 
         probe_regexes = [
-            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)'),
+            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[-_]([A-Za-z]+)'),
             re.compile(r'bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)'),
             re.compile(r'bact[0-9]+_([a-z]+_[a-z_]+)')
         ]

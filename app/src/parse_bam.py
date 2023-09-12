@@ -82,9 +82,9 @@ class Parse_bam_positions:
 
             if len(key) > 100:
                 '''Curtail very long probe names'''
-                short_key = key[0:100].replace("|", "_")
+                short_key = key[0:100]
             else:
-                short_key = key.replace("|", "_")
+                short_key = key
 
             make_dir(f"mkdir {grp_aln_f}{short_key}")
             with open(f"{grp_aln_f}{short_key}/{short_key}.lst", "w") as file:
