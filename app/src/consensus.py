@@ -275,10 +275,15 @@ class Consensus:
         self.fix_terminal_gaps(outcounts_fname, ref_adj_cons_fname)
 
     def fix_terminal_gaps(self, in_fname, out_fname) -> None:
-        # RM < TODO EXPERIMENTAL - ADJUST CONSENSUSES WITH TERMINAL GAPS
+        '''Trim terminal gaps'''
         cons = pd.read_csv(in_fname, sep="\t")
-        cons = cons[cons["Total"] > 99]  # Trim entries to this read d
-        cons = cons.drop(columns=["Pos", "Total"])
+        n_pos = cons.shape[0]
+        '''If total reads at pos x < threshold AND in leading/trailing 5% of reads, mark for deletion'''
+        cons["del"] = cons.apply(lambda x: np.where(x["Total"] < 30 and (
+            x["Pos"] < n_pos * 0.05 or x["Pos"] < n_pos * 0.95), 0, 1), axis=1)
+        '''Rm terminal gaps, re-index, re-save consensus to out fasta.'''
+        cons = cons[cons["del"] == 0]
+        cons = cons.drop(columns=["Pos", "Total", "del"])
         cons["con"] = cons.apply(lambda x: x.idxmax(), axis=1)
         cons["Pos"] = np.arange(1, cons.shape[0] + 1)
         save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
