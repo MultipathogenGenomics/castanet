@@ -1,3 +1,4 @@
+from termcolor import colored
 import subprocess as sp
 import sys
 
@@ -22,19 +23,19 @@ def sp_error_handler(out, err, name):
 
 def loginfo(s):
     '''Log Info statements to stderr'''
-    sys.stderr.write(f'  INFO: {s}\n')
+    sys.stderr.write(f'  {colored("INFO", "green")}: {s}\n')
 
 
 def logerr(s):
     '''Log Warning/Error statements to stderr'''
-    sys.stderr.write(f'  Warning: {s}\n')
+    sys.stderr.write(f'  {colored("WARNING", "orange")}: {s}\n')
 
 
 def stoperr(s, errcode=1):
     '''Call sys exit on finish or err'''
     status = 'Finished' if not errcode else 'Error'
-    sys.stderr.write(f'  {status}: {s}\n')
-    raise SystemError(f'  {status}: {s}\nErrcode: {errcode}')
+    sys.stderr.write(f'  {colored(status, "red")}: {s}\n')
+    raise SystemError(f'  {colored(status, "red")}: {s}\nErrcode: {errcode}')
 
 
 def read_line(h):
