@@ -24,6 +24,7 @@ class Consensus:
         self.a = payload
         self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
         self.target_consensuses = {}
+        self.insufficient_coverage_orgs = []
         self.refs = read_fa(self.a["RefStem"])
         self.probe_names = pd.read_csv(
             f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
@@ -104,6 +105,7 @@ class Consensus:
         if len(coverage_filter) == 0:
             loginfo(
                 f"No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
+            self.insufficient_coverage_orgs.append(org_name)
             return
 
         '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
@@ -281,6 +283,12 @@ class Consensus:
         cons["Pos"] = np.arange(1, cons.shape[0] + 1)
         save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
 
+    def clean_incomplete_consensus(self) -> None:
+        '''If we had insufficient coverage for organism x, clean it from self vars and folder tree'''
+        for org_name in self.insufficient_coverage_orgs:
+            del self.target_consensuses[org_name]
+            shell(f"rm -r {self.a['folder_stem']}/consensus_data/{org_name}/")
+
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''
         rm(f"{self.fnames['collated_reads_fastq']}")
@@ -332,6 +340,7 @@ class Consensus:
         [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
             f"{self.a['folder_stem']}/grouped_reads/")]
         [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
+        self.clean_incomplete_consensus()
         [self.call_ref_corrected_consensus(tar_name)
             for tar_name in self.target_consensuses.keys()]
 
