@@ -63,3 +63,11 @@ def get_reference_org(gt_file, seq_name, folder_stem):
     ref_gb = DownloadGenBankFile(
         f"{folder_stem}consensus_data/GROUND_TRUTH_{gt_file}.gb", acc_id, "test@test.com")
     return [f">{acc_id}", str(ref_gb[acc_id].seq)]
+
+
+def trim_long_fpaths(key):
+    '''Curtail very long probe names that can't be used as folder names'''
+    if len(key) > 100:
+        return key[0:100]
+    else:
+        return key

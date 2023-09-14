@@ -15,20 +15,9 @@ o       O o       O o       O O       O o
 
 Forked from https://github.com/tgolubch/castanet, originally described in https://doi.org/10.1101/716902
 
-This implementation is written in Python 3 and has additional convenience features, such as end-to-end workflows, optimizations, automated installation of dependencies and an API compatible with containerization.
-# Installation
-## Prerequisites
-We assume the user has installed the following. See attached links for guidance if not.
-1. A Linux-like environment: tested on Ubuntu 22.04 and Windows Subsystems Linux (WSL2) Ubuntu 22.04. User experience with Windows/Mac will vary.
-1. Conda (for installing external dependency, Kraken2). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
-1. Python > 3.7 <= 3.12, ideally installed specifically to a Conda environment made for running Castanet.
-1. Java runtime environment (for running external dependency, Trimmomatic). See https://www.java.com/en/download/manual.jsp
+This implementation is written in Python 3 and has additional convenience features, such as end-to-end workflows, optimizations, automated installation of dependencies, an API and wider suite of features, including consensus sequence generator.
 
-## Dependencies
-We include a shell script for installing all other dependencies (tested on Ubuntu 22.04). These may be installed via:
-```sudo bash install_deps.sh```
-
-# Example workflows
+# Castanet workflow
 ```mermaid
 flowchart TD
     A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
@@ -44,31 +33,89 @@ flowchart TD
 ```
 Dotted lines indicate optional pipeline stages.
 
+# Installation
 ## Prerequisites
-We assume the user has the following files to hand and wishes to create an experiment with the following parameters:
-1. Two paired read sequence files with name root ```mysample```, labelled ```..._1, ..._2```
-1. A directory for storing and saving data, called ```data/```
-1. A reference fasta file containing consensus target sequences (see "Supported input probe formats")
-1. A CSV file containing probe length mappings (see "Supported input probe formats")
-1. A file in your Trimmomatic directory (set up in step #2, below), contining adapter sequences specific to your NGS technique, in the following directory ```Trimmomatic-0.39/adapters/all.fa``` (this is the default value)
-1. (Optional) A CSV file describing the contents of both samples in #1, containing as a minimum the fields "sampleid" (i.e. mysample_1...), "pt" and "rawreadnum", in the following direcotry ```data/samples.csv```. If not present, Castanet will assume that your input fasta has not been filtered and hence, will infer the max n reads from these.
+We assume the user's system is set up with the following. See attached links for guidance if not.
+1. A Linux-like environment: tested on Ubuntu 22.04 and Windows Subsystems Linux (WSL2) Ubuntu 22.04. User experience with Windows/Mac will vary.
+1. Conda (for managing packages). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
+1. Python > 3.7 <= 3.12 (developed for 3.10), ideally installed specifically to a Conda environment made for running Castanet.
+1. Java runtime environment (for running external dependency, Trimmomatic). See https://www.java.com/en/download/manual.jsp
+
+## Environment setup
+We strongly recommend creating a new Conda environment for your Castanet install:
+```$conda create --name castanet python==3.10```
+Which can be activated with:
+```$conda activate castanet```
+Before installing your pip libraries:
+```$pip install -r requirements.txt```
+Then the software dependencies:
+```$sudo . install_deps.sh```
+
+## Prerequisite files
+Users may provide the following data to use Castanet:
+1. Paired read sequence files located in their own folder. Castanet infers file names from a supplied folder ("ExpDir") and sequence name ("SeqName"), meaning that all input file names need to be standardised. The trailing portion of each read should end in "_1"/"_2" and the input parameter "SeqName" should reference the file names minus these suffixes. E.g. Read files: "data/mydata_1.fastq.gz", "data/mydata_2.fastq.gz" should be provided, with SeqName specified as "mydata" and ExpDir "data/".
+1. A collection of fasta sequences that comprise the user's probe set, with a naming convention compatible with Castanet (see section "Supported probe formats")
+1. (Optional) A CSV file describing the total number of reads from your original, unedited input files. Columns should include: "sampleid" (i.e. mysample_1...), "pt" to link to clinical data (if present, otherwise leave blank) and "rawreadnum". If not present, Castanet will assume that your input fasta has not been filtered and hence, will infer the max n reads from these.
+1. (Optional) A CSV file containing clinical metadata, which may be joined to output statistics via the "pt" key (see above).
+
+All other pre-requisites can be generated by Castanet and associated automation scripts.
 
 ## Supported input probe formats
-We have not shared our probe panel as yours will differ. Castanet requires an input multifasta file containing each target probe, and an accompanying CSV file with columns: target_id (to match fasta names), target_len (integer for length of probe). We have included in the dev folder an example script for converting multiple fasta files to Castanet input files, but you will likely need to modify this to match your own data.
 
-Castanet works by aggregating reads on target at the organism level, which is achieved through filtering probe names. It currently accepts the following three formats (LOWER CASE TRANSFORMED):
+Castanet works by aggregating reads on target at the organism level, which is achieved through filtering probe names.
+
+Ideally probe names will be in the format:
+
+```>Genus-species_....```
+
+E.g.:
+```
+>hbv_10407_cluster0
+>treponema_pallidum_bact000001
+>haemophilus_influenzae_bact000016_haemophilus-19_influenzae-16-parainfluenzae
+```
+
+Castanet can also process several standard formats (LOWER CASE TRANSFORMED):
 1. ```bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)```
 1. ```bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)```
 1. ```bact[0-9]+_([a-z]+_[a-z_]+)```
 
+N.b. the inclusion of rMLST nomenclature is optional, as is its position in the header string.
+
+Your probe panel will be unique to your experiments, hence we have not provided one. We do, however, provide a convenience endpoint in the API to help you convert a multifasta (or multiple fasta files) into a format that Castanet can interact with, in addition to an accompanying CSV file that measures the length of each. You may still need to modify your probe headers and/or the convenience function to ensure full compatibility, however.
+
 
 ## Example workflow, using API (recommended)
 ### Run commands
-1. Install prerequisites
-1. Install dependencies with ```sudo bash install_deps.sh```
-1. Start an API server with ```uvicorn app.api:app --reload```
+1. Install dependencies (see above)
+1. Start an API server with ```uvicorn app.api:app --port 8000```
 1. Visit API home page in your browser, using address ```http://127.0.0.1:8000/docs```
-1. Expand green drop-downs to explore individual functions. "Try it out" button (top right of expanded green boxes) allow you to change arguments in text box. When you're happy with the input arguments, trigger the function with the large blue "Execute" button. Details of output, including run information and errors, are shown in the terminal that was used to launch the API server.
+1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below (after amending the capitalised fields to fit your input data), trigger the function with "Execute" button. Details of output, including run information and errors, are shown in the terminal that was used to launch the API server. Output will be stored in ./experiments/{ExpName}.
+
+```
+{
+  "ConsensusMinD": 10,
+  "ConsensusCoverage": 30,
+  "ConsensusMapQ": 1,
+  "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
+  "ExcludeIds": "9606",
+  "RetainIds": "",
+  "RetainNames": "",
+  "ExcludeNames": "Homo,Alteromonas,Achromobacter",
+  "KrakenDbDir": "kraken2_human_db/",
+  "Probes": "data/PROBE_LENGTHS.csv",
+  "KeepDups": true,
+  "Clin": "",
+  "DepthInf": "",
+  "SamplesFile": "",
+  "PostFilt": false,
+  "RefStem": "data/PROBE_FASTA.fasta",
+  "AdaptP": "data/all_adapters.fa",
+  "ExpName": "MY_EXPERIMENT",
+  "SeqName": "SEQUENCE_NAME",
+  "ExpDir": "./data/FOLDER"
+}
+```
 
 N.b. pay attention to your argument type: strings should be encased in double quotes, whereas numbers and booleans (true, false) don't need to be. Any arguments that default to empty ('"ArgName": ""') are optional and may be left blank
 
@@ -218,6 +265,14 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 ```https://github.com/niemasd/ViralConsensus```
 
 # Changelog
+## Version 3, 12/09/23
+1. Refinement of consensus generator functions; addition of user-tunable threshold parameters, fix for long terminal gaps, expanding range of statistics reported, error handling, refactoring etc.
+1. Migration of plotting engine to Plotly
+1. Build script and dataset generation automation
+1. Panel converter endpoint with overhaul of string aggregation; finer control over sub-group reporting
+1. Function for trimming terminal gaps, which may appear as an artefact of Mafft reference alignments
+1. Various bug fixes
+
 ## Version 2, 28/07/23
 1. Added consensensus calling functions
 1. Added evaluation of consensus sequence functions
@@ -240,7 +295,6 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 
 Although forking is encouraged, we will only consider pull requests which address bugs and performance issues. Contributors will please configure pre-commit hooks to match ours, as detailed in the .pre-commit-config.yaml file.
 
-1. Install Python dependencies with ```pip install -r requirements.txt```
 1. Initialise pre-commit with ```pre-commit install```
 1. Initialize commitizen ```cz init```
 

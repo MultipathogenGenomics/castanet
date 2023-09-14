@@ -18,7 +18,7 @@ class GenerateReport:
         self.a = payload
         self.t_stats = t_stats   # Target consensuses
         self.c_stats = c_stats   # Remapped consensus
-        self.m_stats = m_stats  # Mash between consensus types
+        self.m_stats = m_stats   # Mash between consensus types
         self.depth_df = pd.read_csv(
             f"{self.a['folder_stem']}{self.a['SeqName']}_depth_with_clin.csv")
         self.depth = self.depth_df[self.depth_df["probetype"]
@@ -26,6 +26,7 @@ class GenerateReport:
         self.contigs_fig_path = contigs_fig_path
         self.consensus_fig_path = consensus_fig_path
         self.depth_fig_path = f"{self.a['folder_stem']}Depth_output/{self.a['GtOrg']}-{self.a['SeqName']}.png"
+        self.consensus_depth_fig_path = f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_coverage.png"
         self.page_size = pagesizes.portrait(pagesizes.A4)
         self.now = datetime.now()
         self.styles = getSampleStyleSheet()
@@ -171,11 +172,14 @@ class GenerateReport:
         story.append(summary_table)
         '''Depth Image'''
         story.append(self.build_logo(self.depth_fig_path, 300, 225))
+        story.append(self.build_logo(self.consensus_depth_fig_path, 300, 225))
         story.append(Paragraph("&nbsp;", self.styles["Normal"]))
 
         '''Remapped consensus Key Stats'''
         story.append(Paragraph(
             "Castanet (Re-mapped) Consensus Statistics", self.styles["Heading2"]))
+        story.append(Paragraph("&nbsp;", self.styles["Normal"]))
+
         '''Vs Genome table'''
         vs_gs_table, genome_tbl_style = self.build_table(
             self.c_stats, (2.5*cm, 2.0*cm, 1.5*cm, 1.5*cm, 2.0*cm, 2.0*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.5*cm))

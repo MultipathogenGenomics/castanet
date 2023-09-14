@@ -1,13 +1,12 @@
 from __future__ import print_function
 import sys
 import re
-import os
 import pandas as pd
 
 from app.utils.argparsers import parse_args_bam_parse
 from app.utils.error_handlers import error_handler_parse_bam_positions
-from app.utils.shell_cmds import shell, make_dir
-from app.utils.utility_fns import get_gene_orgid
+from app.utils.shell_cmds import make_dir
+from app.utils.utility_fns import get_gene_orgid, trim_long_fpaths
 
 
 class Parse_bam_positions:
@@ -80,12 +79,7 @@ class Parse_bam_positions:
                 '''Don't save grouped reads if less than n'''
                 continue
 
-            if len(key) > 100:
-                '''Curtail very long probe names'''
-                short_key = key[0:100].replace("|", "_")
-            else:
-                short_key = key.replace("|", "_")
-
+            short_key = trim_long_fpaths(key)
             make_dir(f"mkdir {grp_aln_f}{short_key}")
             with open(f"{grp_aln_f}{short_key}/{short_key}.lst", "w") as file:
                 [file.write(f"{self.reads_by_hit[key][i][0]}\n")

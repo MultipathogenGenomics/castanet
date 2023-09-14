@@ -14,6 +14,7 @@ from app.utils.system_messages import end_sec_print
 from app.utils.basic_cli_calls import (
     samtools_index, bwa_index, find_and_delete, rm, samtools_read_num)
 from app.utils.error_handlers import error_handler_consensus_ref_corrected
+from app.utils.similarity_graph import call_graph
 
 
 class Consensus:
@@ -24,6 +25,7 @@ class Consensus:
         self.a = payload
         self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
         self.target_consensuses = {}
+        self.insufficient_coverage_orgs = []
         self.refs = read_fa(self.a["RefStem"])
         self.probe_names = pd.read_csv(
             f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
@@ -37,15 +39,19 @@ class Consensus:
         group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {group_bam_fname}")
-        out = shell(f"samtools coverage {group_bam_fname} | grep -E '(^|\s){tar_name}($|\s)'",
+        match_str = f"(^|\s){tar_name}"
+        if len(tar_name) < 99:
+            match_str = f"{match_str}($|\s)"
+        out = shell(f"samtools coverage {group_bam_fname} | grep -E '{match_str}'",
                     "Coverage, consensus filter bam", ret_output=True)
         try:
             out = out.decode().replace("\n", "").split("\t")[6:9]
         except Exception as ex:
             raise ValueError(
                 f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
+
         assert len(
-            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, does the target name match the search term?"
+            out) > 0, f"Could not generate a consensus for target: {tar_name}\nNo coverage detected for this target, this usually happens because your probe naming scheme is incompatible with castanet"
 
         if float(out[0]) < self.a['ConsensusMinD'] or float(out[2]) < self.a["ConsensusMapQ"]:
             '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
@@ -100,6 +106,7 @@ class Consensus:
         if len(coverage_filter) == 0:
             loginfo(
                 f"No remapped consensus will be generated for {org_name} as coverage was too low on all target consensues")
+            self.insufficient_coverage_orgs.append(org_name)
             return
 
         '''Filter tar consensuses on coverage, re-make target alignment and consensus to filtered list, save'''
@@ -134,16 +141,13 @@ class Consensus:
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
-        #       "Mafft align ref seqs (CONSENSUS.PY)")
-        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
-        #       f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-        #       "Mafft align consensus with ref seqs (CONSENSUS.PY)")
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
               "Mafft align ref seqs (CONSENSUS.PY)")
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+        call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+                   f"{org_name}_target_consensus_alignment", is_eval=False)
 
         '''Return flat consensus'''
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
@@ -274,14 +278,34 @@ class Consensus:
         self.fix_terminal_gaps(outcounts_fname, ref_adj_cons_fname)
 
     def fix_terminal_gaps(self, in_fname, out_fname) -> None:
-        # RM < TODO EXPERIMENTAL - ADJUST CONSENSUSES WITH TERMINAL GAPS
-        # RM < TODO AMEND, ADJUST TO ONLY LEADING OR TRAILING
+        '''Trim terminal gaps'''
         cons = pd.read_csv(in_fname, sep="\t")
-        cons = cons[cons["Total"] > 99]  # Trim entries to this read d
-        cons = cons.drop(columns=["Pos", "Total"])
+        n_pos = cons.shape[0]
+        '''If total reads at pos x < threshold AND in leading/trailing 5% of reads, mark for deletion'''
+        cons["del"] = cons.apply(lambda x: np.where(x["Total"] < 30 and (
+            x["Pos"] < n_pos * 0.05 or x["Pos"] > n_pos * 0.95), 1, 0), axis=1)
+        '''Rm terminal gaps, re-index, re-call consensus.'''
+        cons = cons[cons["del"] == 0]
+        cons = cons.drop(columns=["Pos", "Total", "del"])
         cons["con"] = cons.apply(lambda x: x.idxmax(), axis=1)
+        '''Re-do index and totals'''
         cons["Pos"] = np.arange(1, cons.shape[0] + 1)
+        # RM < TODO PLOT CONS COVERAGE
+        cons["Total"] = cons.apply(
+            lambda x: x["A"] + x["T"] + x["C"] + x["G"] + x["-"], axis=1)
+        '''Fix artificial adnylation where totals = 0 (pd idxmax annoyingly picks first col in this case)'''
+        cons["con"] = cons.apply(
+            lambda x: x["con"] if not x["Total"] == 0 else "-", axis=1)
+        cons["-"] = cons.apply(lambda x: 1 if x["Total"] == 0 else 0, axis=1)
+        cons["con"] = cons["con"].astype(str)
+        cons.to_csv(in_fname)
         save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
+
+    def clean_incomplete_consensus(self) -> None:
+        '''If we had insufficient coverage for organism x, clean it from self vars and folder tree'''
+        for org_name in self.insufficient_coverage_orgs:
+            del self.target_consensuses[org_name]
+            shell(f"rm -r {self.a['folder_stem']}/consensus_data/{org_name}/")
 
     def tidy(self) -> None:
         '''Remove intermediate files to save disc space'''
@@ -290,6 +314,43 @@ class Consensus:
         rm(f"{self.fnames['flat_cons_seqs']} {self.fnames['flat_cons_refs']}")
         find_and_delete(
             f"{self.a['folder_stem']}grouped_reads/ {self.a['folder_stem']}consensus_data/", "*.bam")
+
+    def generate_summary(self, org) -> None:
+        dfpath = f"{self.a['folder_stem']}/consensus_seq_stats.csv"
+        cols = ["target", "n_bases", "n_reads",
+                "gc_pc", "missing_bs", "ambig_bs", "cov"]
+
+        if not os.path.isfile(dfpath):
+            df = pd.DataFrame(columns=cols)
+        else:
+            df = pd.read_csv(dfpath)
+
+        # remapped cons stats
+        c_df = pd.read_csv(
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_pos_counts.tsv")
+        gc = round((c_df["G"].sum() + c_df["C"].sum()) /
+                   c_df["Total"].sum() * 100, 2)
+        missing = c_df[c_df["Total"] == 0].shape[0]
+        ambigs = c_df[(c_df["-"] != 0) & (c_df["A"] == 0) & (c_df["C"]
+                                                             == 0) & (c_df["T"] == 0) & (c_df["G"] == 0)].shape[0]
+        coverage = round(
+            (1 - ((missing + ambigs) / c_df["Total"].sum())) * 100, 2)
+
+        '''Get additional stats on consensus remapping'''
+        additional_stats = {}
+        with open(f"{self.a['folder_stem']}/consensus_data/{org}/supplementary_stats.p", 'rb') as f:
+            additional_stats["n_remapped_seqs"] = p.load(
+                f)["filtered_collated_read_num"]
+
+        c_stats = pd.DataFrame([[org, c_df["Total"].sum(
+        ), additional_stats['n_remapped_seqs'], gc, missing, ambigs, coverage]], columns=cols)
+        df = pd.concat([df, c_stats], axis=0, ignore_index=True)
+        df.to_csv(dfpath)
+
+        '''Plot consensus coverage'''
+        px.line(c_df, x="Pos", y="Total", title=f"Consensus coverage, {org} ({self.a['ExpName']})",
+                labels={"Pos": "Position", "Total": "Num Reads"}).write_image(
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_coverage.png")
 
     def main(self) -> None:
         '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''
@@ -303,11 +364,17 @@ class Consensus:
         [self.collate_consensus_seqs(tar_name) for tar_name in os.listdir(
             f"{self.a['folder_stem']}/grouped_reads/")]
         [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
+        self.clean_incomplete_consensus()
         [self.call_ref_corrected_consensus(tar_name)
             for tar_name in self.target_consensuses.keys()]
 
         '''Tidy up'''
         self.tidy()
+
+        '''Call CSV summary generator'''
+        [self.generate_summary(i) for i in os.listdir(
+            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i]
+
         end_sec_print("INFO: Consensus calling complete")
 
 

@@ -10,6 +10,7 @@ from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import samtools_read_num
+from app.utils.utility_fns import trim_long_fpaths
 
 
 class Analysis:
@@ -55,19 +56,10 @@ class Analysis:
             else:
                 return row["target_id"]
 
-        def trim_out_fpaths(row):
-            # RM < TODO move to separate script, link to parse_bam equiv
-            key = row["orig_target_id"]
-            if len(key) > 100:
-                '''Curtail very long probe names'''
-                short_key = key[0:100].replace("|", "_")
-            else:
-                short_key = key.replace("|", "_")
-            return short_key
-
         '''Apply normalisation to both probe and master dataframes to allow for different probe name conventions'''
         pdf['orig_target_id'] = pdf['target_id'].copy()
-        pdf['orig_target_id'] = pdf.apply(lambda x: trim_out_fpaths(x), axis=1)
+        pdf['orig_target_id'] = pdf.apply(
+            lambda x: trim_long_fpaths(x["orig_target_id"]), axis=1)
         pdf['target_id'] = pdf['target_id'].str.lower()
         pdf["target_id"] = pdf.apply(
             lambda x: fix_rmlst(x), axis=1)
@@ -102,7 +94,7 @@ class Analysis:
         pdf["probetype"] = pdf["probetype"].str.lower()
 
         probe_regexes = [
-            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)'),
+            re.compile(r'bact[0-9]+_([A-Za-z]+)-[0-9]+[-_]([A-Za-z]+)'),
             re.compile(r'bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)'),
             re.compile(r'bact[0-9]+_([a-z]+_[a-z_]+)')
         ]
