@@ -47,7 +47,7 @@ Dotted lines indicate optional pipeline stages.
 
 ## Prerequisites
 Users may provide the following data to use Castanet:
-1. Paired read sequence files located in their own folder
+1. Paired read sequence files located in their own folder. Castanet infers file names from a supplied folder ("ExpDir") and sequence name ("SeqName"), meaning that all input file names need to be standardised. The trailing portion of each read should end in "_1"/"_2" and the input parameter "SeqName" should reference the file names minus these suffixes. E.g. Read files: "data/mydata_1.fastq.gz", "data/mydata_2.fastq.gz" should be provided, with SeqName specified as "mydata" and ExpDir "data/".
 1. A collection of fasta sequences that comprise the user's probe set, with a naming convention compatible with Castanet (see section "Supported probe formats")
 1. (Optional) A CSV file describing the total number of reads from your original, unedited input files. Columns should include: "sampleid" (i.e. mysample_1...), "pt" to link to clinical data (if present, otherwise leave blank) and "rawreadnum". If not present, Castanet will assume that your input fasta has not been filtered and hence, will infer the max n reads from these.
 1. (Optional) A CSV file containing clinical metadata, which may be joined to output statistics via the "pt" key (see above).

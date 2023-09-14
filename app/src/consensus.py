@@ -280,7 +280,7 @@ class Consensus:
         n_pos = cons.shape[0]
         '''If total reads at pos x < threshold AND in leading/trailing 5% of reads, mark for deletion'''
         cons["del"] = cons.apply(lambda x: np.where(x["Total"] < 30 and (
-            x["Pos"] < n_pos * 0.05 or x["Pos"] > n_pos * 0.95), 0, 1), axis=1)
+            x["Pos"] < n_pos * 0.05 or x["Pos"] > n_pos * 0.95), 1, 0), axis=1)
         '''Rm terminal gaps, re-index, re-save consensus to out fasta.'''
         cons = cons[cons["del"] == 0]
         cons = cons.drop(columns=["Pos", "Total", "del"])

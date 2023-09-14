@@ -132,6 +132,7 @@ class Evaluate:
                            delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])
         m_df = pd.concat([m_df, pd.read_csv(f"{self.a['folder_stem']}evaluation/mash_results_cons_vs_gold_standard.csv",
                                             delimiter="\t", header=None, names=["ref", "sample", "mash_dist", "p", "matching_hashes"])])
+        m_df["p"] = m_df["p"].round(3)
         m_df.to_csv(f"{self.a['folder_stem']}evaluation/mash_results_full.csv")
 
         return t_stats, c_stats, m_df
