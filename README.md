@@ -17,19 +17,7 @@ Forked from https://github.com/tgolubch/castanet, originally described in https:
 
 This implementation is written in Python 3 and has additional convenience features, such as end-to-end workflows, optimizations, automated installation of dependencies, an API and wider suite of features, including consensus sequence generator.
 
-# Installation
-## Prerequisites
-We assume the user has installed the following. See attached links for guidance if not.
-1. A Linux-like environment: tested on Ubuntu 22.04 and Windows Subsystems Linux (WSL2) Ubuntu 22.04. User experience with Windows/Mac will vary.
-1. Conda (for installing external dependency, Kraken2). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
-1. Python > 3.7 <= 3.12, ideally installed specifically to a Conda environment made for running Castanet.
-1. Java runtime environment (for running external dependency, Trimmomatic). See https://www.java.com/en/download/manual.jsp
-
-## Dependencies
-We include a shell script for installing all other dependencies (tested on Ubuntu 22.04). These may be installed via:
-```sudo bash install_deps.sh```
-
-# Example workflows
+# Castanet workflow
 ```mermaid
 flowchart TD
     A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
@@ -45,7 +33,25 @@ flowchart TD
 ```
 Dotted lines indicate optional pipeline stages.
 
+# Installation
 ## Prerequisites
+We assume the user's system is set up with the following. See attached links for guidance if not.
+1. A Linux-like environment: tested on Ubuntu 22.04 and Windows Subsystems Linux (WSL2) Ubuntu 22.04. User experience with Windows/Mac will vary.
+1. Conda (for managing packages). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
+1. Python > 3.7 <= 3.12 (developed for 3.10), ideally installed specifically to a Conda environment made for running Castanet.
+1. Java runtime environment (for running external dependency, Trimmomatic). See https://www.java.com/en/download/manual.jsp
+
+## Environment setup
+We strongly recommend creating a new Conda environment for your Castanet install:
+```$conda create --name castanet python==3.10```
+Which can be activated with:
+```$conda activate castanet```
+Before installing your pip libraries:
+```$pip install -r requirements.txt```
+Then the software dependencies:
+```$sudo . install_deps.sh```
+
+## Prerequisite files
 Users may provide the following data to use Castanet:
 1. Paired read sequence files located in their own folder. Castanet infers file names from a supplied folder ("ExpDir") and sequence name ("SeqName"), meaning that all input file names need to be standardised. The trailing portion of each read should end in "_1"/"_2" and the input parameter "SeqName" should reference the file names minus these suffixes. E.g. Read files: "data/mydata_1.fastq.gz", "data/mydata_2.fastq.gz" should be provided, with SeqName specified as "mydata" and ExpDir "data/".
 1. A collection of fasta sequences that comprise the user's probe set, with a naming convention compatible with Castanet (see section "Supported probe formats")
@@ -62,6 +68,13 @@ Ideally probe names will be in the format:
 
 ```>Genus-species_....```
 
+E.g.:
+```
+>hbv_10407_cluster0
+>treponema_pallidum_bact000001
+>haemophilus_influenzae_bact000016_haemophilus-19_influenzae-16-parainfluenzae
+```
+
 Castanet can also process several standard formats (LOWER CASE TRANSFORMED):
 1. ```bact[0-9]+_([A-Za-z]+)-[0-9]+[|_]([A-Za-z]+)```
 1. ```bact[0-9]+_[0-9]+_([A-Za-z]+_[A-Za-z_]+)```
@@ -69,16 +82,40 @@ Castanet can also process several standard formats (LOWER CASE TRANSFORMED):
 
 N.b. the inclusion of rMLST nomenclature is optional, as is its position in the header string.
 
-Your probe panel will be unique to your experiments, hence we have not provided one. We do, however, provide a convenience endpoint in the API to help you convert a multifasta (or multiple fasta files) into a format that Castanet can interact with, in addition to an accompanying CSV file that measures the length of each. You may still need to modify your probe headers to ensure full compatibility, however.
+Your probe panel will be unique to your experiments, hence we have not provided one. We do, however, provide a convenience endpoint in the API to help you convert a multifasta (or multiple fasta files) into a format that Castanet can interact with, in addition to an accompanying CSV file that measures the length of each. You may still need to modify your probe headers and/or the convenience function to ensure full compatibility, however.
 
 
 ## Example workflow, using API (recommended)
 ### Run commands
-1. Install prerequisites
-1. Install dependencies with ```sudo bash install_deps.sh```
+1. Install dependencies (see above)
 1. Start an API server with ```uvicorn app.api:app --port 8000```
 1. Visit API home page in your browser, using address ```http://127.0.0.1:8000/docs```
-1. Expand green drop-downs to explore individual functions. "Try it out" button (top right of expanded green boxes) allow you to change arguments in text box. When you're happy with the input arguments, trigger the function with the large blue "Execute" button. Details of output, including run information and errors, are shown in the terminal that was used to launch the API server.
+1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below (after amending the capitalised fields to fit your input data), trigger the function with "Execute" button. Details of output, including run information and errors, are shown in the terminal that was used to launch the API server. Output will be stored in ./experiments/{ExpName}.
+
+```
+{
+  "ConsensusMinD": 10,
+  "ConsensusCoverage": 30,
+  "ConsensusMapQ": 1,
+  "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
+  "ExcludeIds": "9606",
+  "RetainIds": "",
+  "RetainNames": "",
+  "ExcludeNames": "Homo,Alteromonas,Achromobacter",
+  "KrakenDbDir": "kraken2_human_db/",
+  "Probes": "data/PROBE_LENGTHS.csv",
+  "KeepDups": true,
+  "Clin": "",
+  "DepthInf": "",
+  "SamplesFile": "",
+  "PostFilt": false,
+  "RefStem": "data/PROBE_FASTA.fasta",
+  "AdaptP": "data/all_adapters.fa",
+  "ExpName": "MY_EXPERIMENT",
+  "SeqName": "SEQUENCE_NAME",
+  "ExpDir": "./data/FOLDER"
+}
+```
 
 N.b. pay attention to your argument type: strings should be encased in double quotes, whereas numbers and booleans (true, false) don't need to be. Any arguments that default to empty ('"ArgName": ""') are optional and may be left blank
 
@@ -257,7 +294,6 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 
 Although forking is encouraged, we will only consider pull requests which address bugs and performance issues. Contributors will please configure pre-commit hooks to match ours, as detailed in the .pre-commit-config.yaml file.
 
-1. Install Python dependencies with ```pip install -r requirements.txt```
 1. Initialise pre-commit with ```pre-commit install```
 1. Initialize commitizen ```cz init```
 
