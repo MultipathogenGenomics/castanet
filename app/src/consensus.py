@@ -14,6 +14,7 @@ from app.utils.system_messages import end_sec_print
 from app.utils.basic_cli_calls import (
     samtools_index, bwa_index, find_and_delete, rm, samtools_read_num)
 from app.utils.error_handlers import error_handler_consensus_ref_corrected
+from app.utils.similarity_graph import call_graph
 
 
 class Consensus:
@@ -145,6 +146,8 @@ class Consensus:
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+        call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+                   f"{org_name}_target_consensus_alignment", is_eval=False)
 
         '''Return flat consensus'''
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
@@ -345,8 +348,9 @@ class Consensus:
         df.to_csv(dfpath)
 
         '''Plot consensus coverage'''
-        px.line(x=c_df["Pos"], y=c_df["Total"], title=f"Consensus coverage, {org} ({self.a['ExpName']})").write_image(
-            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_coverage")
+        px.line(c_df, x="Pos", y="Total", title=f"Consensus coverage, {org} ({self.a['ExpName']})",
+                labels={"Pos": "Position", "Total": "Num Reads"}).write_image(
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_coverage.png")
 
     def main(self) -> None:
         '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''

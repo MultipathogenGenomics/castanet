@@ -13,14 +13,18 @@ class SimilarityGraph:
     doi: 10.1186/s12859-018-2367-z
     https://www.biotite-python.org/examples/gallery/sequence/pi3k_alignment.html#sphx-glr-examples-gallery-sequence-pi3k-alignment-py'''
 
-    def __init__(self, ExpName, RefOrg, in_fname, out_fname) -> None:
+    def __init__(self, ExpName, RefOrg, in_fname, out_fname, is_eval=True) -> None:
+        if is_eval:
+            fol = "evaluation"
+        else:
+            fol = f"consensus_data/{RefOrg}/"
         self.a = {
             "folder_stem": f"experiments/{ExpName}/",
             "ref_org": f"{RefOrg}",
             "in_fname": in_fname,
-            "out_fname": f"experiments/{ExpName}/evaluation/{out_fname}"
+            "out_fname": f"experiments/{ExpName}/{fol}/{out_fname}"
         }
-        self.bins = 200  # RM << TODO PARAMETERISE BIN NO
+        self.bins = 200
         self.figsize = (18, 3.0)
 
     def construct_matrix(self, trace_code):
@@ -100,6 +104,18 @@ class SimilarityGraph:
             align.get_codes(fasta.get_alignment(seq_dict)))
         '''Plot'''
         self.draw_figure(seq_dict, similarities)
+
+
+def call_graph(seq_name, org, aln_file, out_fname, is_eval=True) -> None:
+    '''Call average normalised similarity graph'''
+    cls = SimilarityGraph(
+        seq_name,
+        org,
+        aln_file,
+        out_fname,
+        is_eval
+    )
+    cls.main()
 
 
 if __name__ == "__main__":

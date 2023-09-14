@@ -7,7 +7,7 @@ import rapidfuzz as rf
 from app.utils.shell_cmds import make_dir, shell
 from app.utils.system_messages import end_sec_print
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
-from app.utils.similarity_graph import SimilarityGraph
+from app.utils.similarity_graph import call_graph
 from app.utils.report_gen import GenerateReport
 
 
@@ -75,18 +75,6 @@ class Evaluate:
         '''Build MAFFT MSA of all consensuses and "true" sequence'''
         shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
               "Mafft align consensus seqs (EVAL.PY)")
-        # shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 --lexp -1.5 --lop 0.5 --lep -0.5 {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
-        #       "Mafft align consensus seqs (EVAL.PY)")
-
-    def call_graph(self, aln_file, out_fname) -> None:
-        '''Call average normalised similarity graph'''
-        cls = SimilarityGraph(
-            self.a['SeqName'],
-            self.a['GtOrg'],
-            aln_file,
-            out_fname
-        )
-        cls.main()
 
     def call_mash_dist(self) -> None:
         '''Call mash distances on (1) all consensuses vs original viral genome, (2) flat/remapped cons vs gold standard cons'''
@@ -154,11 +142,12 @@ class Evaluate:
             ref_seq_present = self.get_consensus_seqs()
             self.call_alignment()
 
-            self.call_graph(self.aln_fname, "consensus_vs_true_seq")
+            call_graph(self.a['SeqName'], self.a['GtOrg'],
+                       self.aln_fname, "consensus_vs_true_seq")
 
             '''Call graph on contig consensuses'''
-            self.call_graph(
-                f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+            call_graph(self.a['SeqName'], self.a['GtOrg'],
+                       f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
             '''Do stats'''
             if ref_seq_present:
