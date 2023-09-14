@@ -109,7 +109,7 @@ class Evaluate:
 
         ''''Stats on remapped consensus'''
         c_df = pd.read_csv(
-            f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_pos_counts.tsv", sep="\t")  # remapped cons stats
+            f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_pos_counts.tsv")  # remapped cons stats
         gc = round((c_df["G"].sum() + c_df["C"].sum()) /
                    c_df["Total"].sum() * 100, 2)
         missing = c_df[c_df["Total"] == 0].shape[0]
@@ -117,6 +117,7 @@ class Evaluate:
                                                              == 0) & (c_df["T"] == 0) & (c_df["G"] == 0)].shape[0]
         coverage = round(
             (1 - ((missing + ambigs) / c_df["Total"].sum())) * 100, 2)
+
         '''Get additional stats on consensus remapping'''
         with open(f"{self.a['folder_stem']}consensus_data/{self.a['GtOrg']}/supplementary_stats.p", 'rb') as f:
             self.additional_stats["n_remapped_seqs"] = p.load(

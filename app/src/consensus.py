@@ -281,11 +281,21 @@ class Consensus:
         '''If total reads at pos x < threshold AND in leading/trailing 5% of reads, mark for deletion'''
         cons["del"] = cons.apply(lambda x: np.where(x["Total"] < 30 and (
             x["Pos"] < n_pos * 0.05 or x["Pos"] > n_pos * 0.95), 1, 0), axis=1)
-        '''Rm terminal gaps, re-index, re-save consensus to out fasta.'''
+        '''Rm terminal gaps, re-index, re-call consensus.'''
         cons = cons[cons["del"] == 0]
         cons = cons.drop(columns=["Pos", "Total", "del"])
         cons["con"] = cons.apply(lambda x: x.idxmax(), axis=1)
+        '''Re-do index and totals'''
         cons["Pos"] = np.arange(1, cons.shape[0] + 1)
+        # RM < TODO PLOT CONS COVERAGE
+        cons["Total"] = cons.apply(
+            lambda x: x["A"] + x["T"] + x["C"] + x["G"] + x["-"], axis=1)
+        '''Fix artificial adnylation where totals = 0 (pd idxmax annoyingly picks first col in this case)'''
+        cons["con"] = cons.apply(
+            lambda x: x["con"] if not x["Total"] == 0 else "-", axis=1)
+        cons["-"] = cons.apply(lambda x: 1 if x["Total"] == 0 else 0, axis=1)
+        cons["con"] = cons["con"].astype(str)
+        cons.to_csv(in_fname)
         save_fa(out_fname, f">CONSENSUS\n{''.join(cons['con'].tolist())}")
 
     def clean_incomplete_consensus(self) -> None:
@@ -312,8 +322,9 @@ class Consensus:
         else:
             df = pd.read_csv(dfpath)
 
+        # remapped cons stats
         c_df = pd.read_csv(
-            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_pos_counts.tsv", sep="\t")  # remapped cons stats
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_pos_counts.tsv")
         gc = round((c_df["G"].sum() + c_df["C"].sum()) /
                    c_df["Total"].sum() * 100, 2)
         missing = c_df[c_df["Total"] == 0].shape[0]
@@ -332,6 +343,10 @@ class Consensus:
         ), additional_stats['n_remapped_seqs'], gc, missing, ambigs, coverage]], columns=cols)
         df = pd.concat([df, c_stats], axis=0, ignore_index=True)
         df.to_csv(dfpath)
+
+        '''Plot consensus coverage'''
+        px.line(x=c_df["Pos"], y=c_df["Total"], title=f"Consensus coverage, {org} ({self.a['ExpName']})").write_image(
+            f"{self.a['folder_stem']}/consensus_data/{org}/{org}_consensus_coverage")
 
     def main(self) -> None:
         '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''

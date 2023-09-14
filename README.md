@@ -270,6 +270,7 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 1. Migration of plotting engine to Plotly
 1. Build script and dataset generation automation
 1. Panel converter endpoint with overhaul of string aggregation; finer control over sub-group reporting
+1. Function for trimming terminal gaps, which may appear as an artefact of Mafft reference alignments
 1. Various bug fixes
 
 ## Version 2, 28/07/23
