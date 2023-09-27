@@ -1,10 +1,13 @@
+#!/bin/bash
+# Change DIR and ADD variables to look at your master data folder / API addr
 DIR=data/hiv_set/
+ADD=http://127.0.0.1:8001/end_to_end/
 
 for FILE in $DIR*; do
     read acc < <(echo $FILE | cut -d "/" -f 3)
-    echo Hitting API for dataset: $acc
-    curl -X 'POST' \
-        'http://127.0.0.1:8001/end_to_end/' \
+    echo Running analysis on dataset: $acc
+    resp=$(curl -X 'POST' \
+        ''$ADD'' \
         -H 'accept: application/json' \
         -H 'Content-Type: application/json' \
         -d '{
@@ -25,8 +28,9 @@ for FILE in $DIR*; do
         "PostFilt": false,
         "RefStem": "data/2023_panel/all_seqs.fasta",
         "AdaptP": "data/all_adapters.fa",
-        "ExpName": "test",
-        "SeqName": "'$val'",
-        "ExpDir": "./data/rsv_set/'$val'"
-        }'
+        "ExpName": "'$acc'",
+        "SeqName": "'$acc'",
+        "ExpDir": "'$DIR/$acc/'"
+        }')
+    echo Completed processing: $resp
 done
