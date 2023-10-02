@@ -26,10 +26,9 @@ flowchart TD
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
     E[Generate unique read counts]-->|Castanet, Samtools|F[Analysis]
     F[Analysis]-.->|Castanet|G[Post hoc filter]
-    F[Analysis]-->|Castanet|I[Call consensus sequences]
+    F[Analysis]-->|Castanet, Samtools, ViralConsensus|I[Call consensus sequences]
     I[Call consensus sequences]-.->|Castanet|J[Evaluate]
-    G[Post hoc filter]-.->|Castanet|H[Filter Reads]
-    H[Filter Reads]-.->|Castanet|E
+    G[Post hoc read filter]-.->|Castanet|E
 ```
 Dotted lines indicate optional pipeline stages.
 
