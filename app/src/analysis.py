@@ -183,6 +183,7 @@ class Analysis:
 
     def add_depth(self, probelengths):
         ''' Calculate read depth per position. '''
+        # this is an example
         if self.a["DepthInf"]:
             loginfo(
                 f'Reading read depth information from {self.a["DepthInf"]}.')

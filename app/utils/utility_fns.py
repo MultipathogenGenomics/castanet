@@ -69,8 +69,7 @@ def get_reference_org(gt_file, seq_name, folder_stem):
 
     ref_gb = DownloadGenBankFile(
         f"{folder_stem}consensus_data/GROUND_TRUTH_{seq_name}.gb", acc_id, "test@test.com")
-    # try: [f">{acc_id}", str(ref_gb[acc_id].seq)]
-    # except: breakpoint()
+
     return [f">{acc_id}", str(ref_gb[acc_id].seq)]
 
 
