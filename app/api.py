@@ -91,21 +91,22 @@ async def batch(payload: Batch_eval_data) -> str:
     payload["StartTime"] = time.time()
     SeqNames = get_batch_seqnames(payload["BatchName"])
     agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
+    errs = []
     for i in SeqNames:
-        # try:
-        # RM << THIS EXCEPTION MIGHT HAVE BEEN CAUSING EARLY EXIT FROM SOME
-        payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
-        payload["ExpName"] = payload["SeqName"] = i[0]
-        agg_analysis_csvs.append(
-            f"experiments/{payload['ExpName']}/{payload['SeqName']}_depth_with_clin.csv")
-        run_end_to_end(payload)
-        do_eval(payload)
-        # except Exception as ex:
-        #     end_sec_print(
-        #         f"REGISTERED ERROR {payload['SeqName']} WITH EXCEPTION: {ex}")
+        try:
+            payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
+            payload["ExpName"] = payload["SeqName"] = i[0]
+            agg_analysis_csvs.append(
+                f"experiments/{payload['ExpName']}/{payload['SeqName']}_depth_with_clin.csv")
+            run_end_to_end(payload)
+            do_eval(payload)
+        except Exception as ex:
+            errs.append(i[0])
+            end_sec_print(
+                f"REGISTERED ERROR {payload['SeqName']} WITH EXCEPTION: {ex}")
     msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
     print(
-        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\n***")
+        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
     return "Task complete. See terminal output for details."
 
 
