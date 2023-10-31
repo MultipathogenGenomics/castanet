@@ -137,13 +137,20 @@ class Consensus:
         with open(self.fnames['flat_cons_seqs'], "w") as f:
             [f.write(f"{i['tar_name']}_CONS\n{i['consensus_seq']}\n")
              for i in self.target_consensuses[org_name]]
+        shell(
+            f"cat {self.fnames['flat_cons_seqs']} {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}/consensus_data/unaligned_consensuses_and_refs.fna")
 
     def flatten_consensus(self, org_name) -> str:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
-        shell(f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln",
+        ref_aln_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln"
+        shell(f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {ref_aln_fname}",
               "Mafft align ref seqs (CONSENSUS.PY)")
-        shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln "
+        refs = read_fa(ref_aln_fname)
+        if len(refs) == 0:
+            '''If only 1 reference seq, the alignment wouldn't have worked - defer to temp refs file in these cases'''
+            ref_aln_fname = self.fnames['flat_cons_refs']
+        shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
         call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
@@ -244,6 +251,7 @@ class Consensus:
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
               f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem -t {self.a['NThreads']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
               f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+
         self.fix_terminal_gaps(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv",
                                f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
         find_and_delete(
@@ -373,7 +381,7 @@ class Consensus:
 
         '''Call CSV summary generator'''
         [self.generate_summary(i) for i in os.listdir(
-            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i]
+            f"{self.a['folder_stem']}/consensus_data/") if not "GROUND_TRUTH" in i and not ".fna" in i]
 
         end_sec_print("INFO: Consensus calling complete")
 

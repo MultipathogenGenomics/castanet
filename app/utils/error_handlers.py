@@ -93,9 +93,10 @@ def error_handler_analysis(argies) -> pd.DataFrame:
                     f'{argies["Clin"]} must contain at least the following columns: pt, clin_int')
 
     '''Validate batch name'''
-    if not argies["ExpName"].replace('_', '').isalnum():
-        stoperr(
-            f'{argies["ExpName"]} is not a valid batch name. Must be alphanumeric.')
+    # if not argies["ExpName"].replace('_', '').isalnum():
+    #     breakpoint()
+    #     stoperr(
+    #         f'{argies["ExpName"]} is not a valid batch name. Must be alphanumeric.')
 
     '''Open data frame'''
     try:

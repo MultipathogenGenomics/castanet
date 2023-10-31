@@ -4,7 +4,7 @@ import pandas as pd
 import pickle as p
 import rapidfuzz as rf
 
-from app.utils.shell_cmds import make_dir, shell, stoperr, loginfo
+from app.utils.shell_cmds import make_dir, shell, stoperr, loginfo, logerr
 from app.utils.system_messages import end_sec_print
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.similarity_graph import call_graph
@@ -141,29 +141,29 @@ class Evaluate:
 
     def main(self) -> None:
         '''Retrieve all varieties of cons seq, graph'''
-        # try:
-        ref_seq_present = self.get_consensus_seqs()
-        self.call_alignment()
+        try:
+            ref_seq_present = self.get_consensus_seqs()
+            self.call_alignment()
 
-        call_graph(self.a['SeqName'], self.a['GtOrg'],
-                   self.aln_fname, "consensus_vs_true_seq")
+            call_graph(self.a['SeqName'], self.a['GtOrg'],
+                       self.aln_fname, "consensus_vs_true_seq")
 
-        '''Call graph on contig consensuses'''
-        call_graph(self.a['SeqName'], self.a['GtOrg'],
-                   f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+            '''Call graph on contig consensuses'''
+            call_graph(self.a['SeqName'], self.a['GtOrg'],
+                       f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
-        '''Do stats'''
-        if ref_seq_present:
-            self.call_mash_dist()
-        else:
-            self.do_unreferenced_eval()
+            '''Do stats'''
+            if ref_seq_present:
+                self.call_mash_dist()
+            else:
+                self.do_unreferenced_eval()
 
-        t_stats, c_stats, stats_df = self.collate_stats()
-        self.create_report(t_stats, c_stats, stats_df)
+            t_stats, c_stats, stats_df = self.collate_stats()
+            self.create_report(t_stats, c_stats, stats_df)
 
-        # except Exception as e:
-        #     end_sec_print(
-        #         f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+        except Exception as e:
+            logerr(
+                f"WARNING: I didn't do post hoc evaluation on this sample, but this might have been deliberate. Exception: {e}")
         end_sec_print("Eval complete")
 
 
