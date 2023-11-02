@@ -19,7 +19,9 @@ class ProbeFileGen:
         self.all_seqs = []
         self.master_seq_counter = 0
         self.stop_words = [[".mafft_consensus", ""], ["mafft", ""], ["consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
-                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE", ""], [".fst", ""], ["__", ""], ["--", "-"], ["/", "-"]]
+                           [",", ""], [" ", "-"], [".mafft", ""], ["_TRUE",
+                                                                   ""], [".fst", ""], ["__", ""], ["--", "-"], ["/", "-"],
+                           ["(", ""], [")", ""], [":", "-"], [".", "-"]]
         self.split_names = [
             "enterovirus", "influenza"
         ]

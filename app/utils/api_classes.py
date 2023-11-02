@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
 
 
 class Data_BatchName(BaseModel):
-    BatchName: DirectoryPath = Query('./MyRawData/',
+    BatchName: DirectoryPath = Query('./data/my_experiments/',
                                      description="Path to recursively read for individual datasets.")
 
 
@@ -26,7 +26,7 @@ class Data_AdaptP(BaseModel):
 
 
 class Data_RefStem(BaseModel):
-    RefStem: FilePath = Query("data/rmlst_virus_extra_ercc_2018.fasta",
+    RefStem: FilePath = Query("data/my_probes.fasta",
                               description="Path to mapping file, in fasta format.")
 
 
@@ -62,9 +62,12 @@ class Data_FilterFilters(BaseModel):
                                            description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified.")
 
 
+class Data_TrimmomaticParams(BaseModel):
+    TrimMinLen: int = Query(36,
+                            description="Values < than min trim length will be removed by Trimmomatic tool.")
+
+
 class Data_AnalysisExtras(BaseModel):
-    Probes: str = Query("data/probelengths_rmlst_virus_extra_ercc.csv",
-                        description="CSV file containing probe length mappings. Absolute path required.")
     KeepDups: bool = Query(True,
                            description='(OPTIONAL) If true, do not reassign duplicates to the sample with the majority in each duplicate cluster (Default: True).')
     Clin: Optional[str] = Query("",
@@ -82,8 +85,8 @@ class Data_ConsensusParameters(BaseModel):
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
     ConsensusMapQ: float = Query(1.0,
                                  description="Minimum quality value for a target consensus to be included in the remapped consensus.")
-    GtFile: Optional[FilePath] = Query('',
-                                       description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
+    GtFile: Optional[str] = Query('',
+                                  description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
     GtOrg: Optional[str] = Query('',
                                  description="(OPTIONAL - EVAL MODE ONLY) Name of target organism to measure ground truth sequence against.")
 
@@ -93,25 +96,25 @@ class Data_ConsensusParameters(BaseModel):
 
 class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-               Data_ConsensusParameters):
+               Data_ConsensusParameters, Data_TrimmomaticParams):
     pass
 
 
 class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
                     Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-                    Data_ConsensusParameters):
+                    Data_ConsensusParameters, Data_TrimmomaticParams):
     pass
 
 
-class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir):
+class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir, Data_TrimmomaticParams):
     pass
 
 
-class Filter_keep_reads_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_FilterFilters):
+class Filter_keep_reads_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_FilterFilters, Data_TrimmomaticParams):
     pass
 
 
-class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP):
+class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_TrimmomaticParams):
     pass
 
 
@@ -123,7 +126,7 @@ class Count_map_data(Data_ExpDir, Data_SeqName, Data_ExpName):
     pass
 
 
-class Analysis_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AnalysisExtras):
+class Analysis_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AnalysisExtras, Data_RefStem):
     pass
 
 
@@ -133,7 +136,7 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
 
 class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
                       Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
-                      Data_FilterFilters, Data_ConsensusParameters):
+                      Data_FilterFilters, Data_ConsensusParameters, Data_TrimmomaticParams):
     pass
 
 

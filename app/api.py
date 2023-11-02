@@ -4,12 +4,14 @@ import time
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 
+from app.utils.shell_cmds import stoperr
 from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
 from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
 from app.utils.generate_probe_files import ProbeFileGen
+from app.utils.combine_batch_output import combine_output_csvs
 from app.src.preprocess import run_kraken
 from app.src.filter_keep_reads import FilterKeepReads
 from app.src.trim_adapters import run_trim
@@ -55,7 +57,7 @@ app = FastAPI(
         "name": "Nuffield Department of Medicine, University of Oxford",
         "url": "https://www.ndm.ox.ac.uk/",
     },
-    license_info={  # RM < TODO CHECK LICENSE
+    license_info={
         "name": "Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)",
         "url": "https://creativecommons.org/licenses/by-nc/4.0/",
     },
@@ -68,6 +70,9 @@ app = FastAPI(
 def process_payload(payload) -> dict:
     payload = jsonable_encoder(payload)
     payload["NThreads"] = os.cpu_count()
+    if "ConsensusMinD" in payload.keys():
+        if payload["ConsensusMinD"] <= 2:
+            stoperr(f"Consuensus min depth must exceed 2, otherwise you would inherit sections of reference sequence in the final remapped consensus.")
     write_input_params(payload)
     return payload
 
@@ -82,18 +87,27 @@ async def read_root() -> dict:
 
 @app.post("/batch_eval/", tags=["Dev endpoints"])
 async def batch(payload: Batch_eval_data) -> str:
+    st = time.time()
     payload = process_payload(payload)
     payload["StartTime"] = time.time()
     SeqNames = get_batch_seqnames(payload["BatchName"])
+    agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
+    errs = []
     for i in SeqNames:
         try:
             payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
             payload["ExpName"] = payload["SeqName"] = i[0]
+            agg_analysis_csvs.append(
+                f"experiments/{payload['ExpName']}/{payload['SeqName']}_depth_with_clin.csv")
             run_end_to_end(payload)
             do_eval(payload)
         except Exception as ex:
+            errs.append(i[0])
             end_sec_print(
-                f"FAILED PROCESSING SAMPLE {payload['SeqName']} WITH EXCEPTION: {ex}")
+                f"REGISTERED ERROR {payload['SeqName']} WITH EXCEPTION: {ex}")
+    msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
+    print(
+        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
     return "Task complete. See terminal output for details."
 
 

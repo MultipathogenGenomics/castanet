@@ -4,7 +4,7 @@ import pandas as pd
 import pickle as p
 import rapidfuzz as rf
 
-from app.utils.shell_cmds import make_dir, shell
+from app.utils.shell_cmds import make_dir, shell, stoperr, loginfo, logerr
 from app.utils.system_messages import end_sec_print
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.similarity_graph import call_graph
@@ -34,11 +34,11 @@ class Evaluate:
         if all_seqs[0][0] == ">NO REFERENCE AVAILABLE":
             '''If no GT viral sequence, remove empty entry from aln'''
             ref_seq_present = False
-        all_seqs.append(  # Un-remapped flattened
+        all_seqs.append(  # [1] Un-remapped flattened
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_sequence.fasta"))
-        all_seqs.append(  # Remapped
+        all_seqs.append(  # [2] Remapped
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_remapped_consensus_sequence.fasta"))
-        all_seqs.append(  # Ground truth
+        all_seqs.append(  # [3] Ground truth
             *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_ref_adjusted_consensus.fasta"))
 
         if not ref_seq_present:
@@ -53,10 +53,10 @@ class Evaluate:
             all_seqs[0][1], all_seqs[-2][1])
         '''Fuzzy ratio = normalized indel distance'''
         self.additional_stats["fuzz_r"] = round(
-            rf.fuzz.ratio(all_seqs[0][1], all_seqs[-2][1]), 1)
+            rf.fuzz.ratio(all_seqs[0][1].lower(), all_seqs[-2][1].lower()), 1)
         '''JaroWinkler distance = edit distance for transposition only'''
         self.additional_stats["jw_d"] = round(
-            rf.distance.JaroWinkler.normalized_similarity(all_seqs[0][1], all_seqs[-2][1]), 2)
+            rf.distance.JaroWinkler.normalized_similarity(all_seqs[0][1].lower(), all_seqs[-2][1].lower()), 2)
 
         '''Rename seqs, save individual fa, build mash sketch and combined fa (for aln)'''
         for i in range(len(all_seqs)):
@@ -73,8 +73,11 @@ class Evaluate:
 
     def call_alignment(self) -> None:
         '''Build MAFFT MSA of all consensuses and "true" sequence'''
-        shell(f"mafft --thread {os.cpu_count()} --localpair --maxiterate 1000 {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
+        loginfo(f"Calling Mafft alignment of consensus seqs")
+        shell(f"mafft --auto --thread {os.cpu_count()} {self.a['folder_stem']}evaluation/consensus_seqs.fasta > {self.aln_fname}",
               "Mafft align consensus seqs (EVAL.PY)")
+        if len(read_fa(self.aln_fname)) == 0:
+            stoperr(f"Alignmnet is empty - check Mafft didn't crash.")
 
     def call_mash_dist(self) -> None:
         '''Call mash distances on (1) all consensuses vs original viral genome, (2) flat/remapped cons vs gold standard cons'''
@@ -159,8 +162,8 @@ class Evaluate:
             self.create_report(t_stats, c_stats, stats_df)
 
         except Exception as e:
-            end_sec_print(
-                f"WARNING: Failed to evaluate. This usually means that the consensus binary is corrupted. Exception: {e}")
+            logerr(
+                f"WARNING: I didn't do post hoc evaluation on this sample, but this might have been deliberate if you didn't specify a ground truth organism/metadata file. Exception: {e}")
         end_sec_print("Eval complete")
 
 

@@ -28,7 +28,7 @@ def loginfo(s):
 
 def logerr(s):
     '''Log Warning/Error statements to stderr'''
-    sys.stderr.write(f'  {colored("WARNING", "orange")}: {s}\n')
+    sys.stderr.write(f'  {colored("WARNING", "magenta")}: {s}\n')
 
 
 def stoperr(s, errcode=1):

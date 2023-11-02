@@ -10,7 +10,7 @@ from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import samtools_read_num
-from app.utils.utility_fns import trim_long_fpaths
+from app.utils.utility_fns import trim_long_fpaths, read_fa
 
 
 class Analysis:
@@ -24,13 +24,17 @@ class Analysis:
 
     def add_probelength(self):
         '''Add length of target_id to each row of master df after splitting probelength data.'''
-        loginfo(f'Adding probe length information from {self.a["Probes"]}')
+        loginfo(f"Generating probe lengths from input probes file (RefStem)")
         try:
-            probelengths = pd.read_csv(
-                self.a["Probes"], dtype={'target_len': int})
+            plens = [{"target_id": i[0].replace(
+                ">", ""), "target_len": len(i[1])} for i in read_fa(self.a["RefStem"])]
+            probelengths = pd.DataFrame(plens)
+            probelengths = probelengths.sort_values(by="target_id")
+            probelengths.to_csv(
+                f"{self.output_dir}/probe_lengths.csv", index=False)
         except:
             stoperr(
-                f'Failed to read probe information. Is {self.a["Probes"]} a valid CSV file?')
+                f'Failed to read probe information. Is {self.a["RefStem"]} a valid multifasta file?')
         probelengths_mod = self.add_probetype(probelengths)
         self.df = self.df.merge(
             probelengths_mod, left_on='target_id', right_on='target_id', how='left')
@@ -183,6 +187,7 @@ class Analysis:
 
     def add_depth(self, probelengths):
         ''' Calculate read depth per position. '''
+        # this is an example
         if self.a["DepthInf"]:
             loginfo(
                 f'Reading read depth information from {self.a["DepthInf"]}.')
