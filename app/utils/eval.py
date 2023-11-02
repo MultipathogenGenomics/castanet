@@ -163,7 +163,7 @@ class Evaluate:
 
         except Exception as e:
             logerr(
-                f"WARNING: I didn't do post hoc evaluation on this sample, but this might have been deliberate. Exception: {e}")
+                f"WARNING: I didn't do post hoc evaluation on this sample, but this might have been deliberate if you didn't specify a ground truth organism/metadata file. Exception: {e}")
         end_sec_print("Eval complete")
 
 

@@ -21,16 +21,16 @@ This implementation is written in Python 3 and has additional convenience featur
 ```mermaid
 flowchart TD
     A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
-    B[Filter Reads]-->|Castanet|C[Trim adapters/poor quality reads]
+    B[Filter Reads]-->C[Trim adapters/poor quality reads]
     C[Trim adapters/poor quality reads]-->|Trimmomatic|D[Mapping]
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
-    E[Generate unique read counts]-->|Castanet, Samtools|F[Analysis]
-    F[Analysis]-.->|Castanet|G[Post hoc filter]
-    F[Analysis]-->|Castanet, Samtools, Mafft, ViralConsensus|I[Call consensus sequences]
-    I[Call consensus sequences]-.->|Castanet|J[Evaluate]
-    G[Post hoc read filter]-.->|Castanet|E
+    E[Generate unique read counts]-->|Samtools|F[Analysis]
+    F[Analysis]-.->G[Post hoc filter]
+    F[Analysis]-->|Samtools, Mafft, ViralConsensus|I[Call consensus sequences]
+    I[Call consensus sequences]-.->J[Evaluate]
+    G[Post hoc read filter]-.->E
 ```
-Dotted lines indicate optional pipeline stages.
+Dotted lines indicate optional pipeline stages. Calls to dependencies are annotated.
 
 # Installation
 ## Prerequisites
@@ -81,7 +81,7 @@ Castanet can also process several standard formats (LOWER CASE TRANSFORMED):
 
 N.b. the inclusion of rMLST nomenclature is optional, as is its position in the header string.
 
-Your probe panel will be unique to your experiments, hence we have not provided one. We do, however, provide a convenience endpoint in the API to help you convert a multifasta (or multiple fasta files) into a format that Castanet can interact with, in addition to an accompanying CSV file that measures the length of each. You may still need to modify your probe headers and/or the convenience function to ensure full compatibility, however.
+Your probe panel will be unique to your experiments, hence we have not provided one. We do, however, provide a convenience endpoint (/convert_probes/)in the API to help you convert a multifasta (or multiple fasta files) into a format that Castanet can interact with, in addition to an accompanying CSV file that measures the length of each. You may still need to modify your probe headers and/or the convenience function to ensure full compatibility, however. Try to avoid non-alphanumeric characters in your probe names, although the /convert_probes/ endpoint filters most types of contaminating character (underscores, hyphen, pipes etc.).
 
 
 ## Example workflow, using API (recommended)
@@ -93,6 +93,7 @@ Your probe panel will be unique to your experiments, hence we have not provided 
 
 ```
 {
+  "TrimMinLen": 36,
   "ConsensusMinD": 10,
   "ConsensusCoverage": 30,
   "ConsensusMapQ": 1,
@@ -102,7 +103,6 @@ Your probe panel will be unique to your experiments, hence we have not provided 
   "RetainNames": "",
   "ExcludeNames": "Homo,Alteromonas,Achromobacter",
   "KrakenDbDir": "kraken2_human_db/",
-  "Probes": "data/PROBE_LENGTHS.csv",
   "KeepDups": true,
   "Clin": "",
   "DepthInf": "",
@@ -194,7 +194,6 @@ Iterate over bam files in your experiment directory (N.b. this is a batching fun
 ## Analysis
 
 *Input args*
-1. Probe lengths list [Probes]. CSV file containing list of probes and their respective lengths, with headers {target_id, target_len}. User must specify input folder and file extension.
 1. Sample mapping file [Samples]. CSV file containing information about raw reads, with headers {sampleid,pt,rawreadnum}. Field "pt" must match clinical data, if specified.
 1. (OPTIONAL) Clinical data file [Clin]. CSV contianing clinical details, which may be mapped to samples via Samples file pt field.
 1. (OPTIONAL) Path to previously generated file containing read depts [DepthInf]. Used for regenerating full CSV of results with clinical info. Must contain headers {sampleid,

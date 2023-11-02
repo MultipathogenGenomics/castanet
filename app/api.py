@@ -70,8 +70,9 @@ app = FastAPI(
 def process_payload(payload) -> dict:
     payload = jsonable_encoder(payload)
     payload["NThreads"] = os.cpu_count()
-    if payload["ConsensusMinD"] <= 2:
-        stoperr(f"Consuensus min depth must exceed 2, otherwise you would inherit sections of reference sequence in the final remapped consensus.")
+    if "ConsensusMinD" in payload.keys():
+        if payload["ConsensusMinD"] <= 2:
+            stoperr(f"Consuensus min depth must exceed 2, otherwise you would inherit sections of reference sequence in the final remapped consensus.")
     write_input_params(payload)
     return payload
 
