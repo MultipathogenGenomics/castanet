@@ -17,6 +17,7 @@ class Parse_bam_positions:
     '''
 
     def __init__(self, argies) -> None:
+        '''N.b. argies are not a dict, but a namespace!!'''
         self.min_match_length = 40
         self.argies = argies
         self.n = 10  # Min n reads to decide we want to make a consensus
@@ -42,8 +43,17 @@ class Parse_bam_positions:
             fields[8]), fields[5], fields[9]
 
         match = tlen >= self.min_match_length
-        improper_match = (tlen == 0) and (self.getmatchsize(
-            cigar) >= self.min_match_length) and (get_gene_orgid(ref) == get_gene_orgid(ref2))
+        if not self.argies.SingleEnded == "True":
+            improper_match = (tlen == 0) and (self.getmatchsize(
+                cigar) >= self.min_match_length) and (get_gene_orgid(ref) == get_gene_orgid(ref2))
+        else:
+            '''RM < Experimental, for use with single ended sets (e.g. when Sequencer explodes mid-run)'''
+            improper_match = (tlen == 0) and (self.getmatchsize(
+                cigar) >= self.min_match_length)
+            try:
+                tlen = re.search(r'[0-9]*M', cigar)[0].replace("M", "")
+            except:
+                tlen = 0
 
         if match or improper_match:
             '''Properly paired and match is of decent mapped length OR

@@ -4,7 +4,7 @@ import time
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 
-from app.utils.shell_cmds import stoperr
+from app.utils.shell_cmds import stoperr, shell
 from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
@@ -113,13 +113,22 @@ async def batch(payload: Batch_eval_data) -> str:
 
 def get_batch_seqnames(batch_name) -> list:
     fstems = []
-    folders = os.listdir(batch_name)
-    folders.sort()
+    folders = sorted(os.listdir(batch_name))
     for folder in folders:
-        f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in os.listdir(
-            f"{batch_name}/{folder}") if re.match(r"[\s\S]*?\.fastq.gz", i)]
-        f = ["_".join(i.split("_")[:-1]) for i in os.listdir(
-            f"{batch_name}/{folder}") if re.match(r"[\s\S]*?\.fastq.gz", i)]
+        f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
+            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+        if "_R1" in f_full[0] or "_R2" in f_full[0]:
+            temp = []
+            raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
+                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+            for i in range(0, 2):
+                temp.append(
+                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fastq.gz")[0]}_{i+1}.fastq.gz')
+                shell(f"mv {raw_names[i]} {temp[i]}")
+        else:
+            temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
+        f = ["_".join(i.split("_")[:-1]).split("/")[-1]
+             for i in temp if re.match(r"[\s\S]*?\.fastq.gz", i)]
         assert len(
             f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fasta.gz files."
         assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."
