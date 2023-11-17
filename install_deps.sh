@@ -34,6 +34,7 @@ autoreconf -i
 ./configure
 make
 sudo make install
+cd ..
 
 git clone https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus
