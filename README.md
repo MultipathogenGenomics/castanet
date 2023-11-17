@@ -47,8 +47,10 @@ Which can be activated with:
 ```$ conda activate castanet```
 Before installing your pip libraries:
 ```$ pip install -r requirements.txt```
-Then the software dependencies:
-```$ sudo . install_deps.sh```
+And the following Command Line packages:
+```$ sudo apt install unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++```
+Finally these bioinformatics dependencies:
+```$ bash install_deps.sh```
 
 ## Prerequisite files
 Users may provide the following data to use Castanet:

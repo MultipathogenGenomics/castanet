@@ -1,21 +1,18 @@
-# Libraries
-apt install unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++
-
 # Adjust channel priority on conda env
 conda config --add channels bioconda
 conda config --add channels conda-forge
 
 # Install kraken2 via conda, for removing human reads
-conda install -c bioconda kraken2
+conda install -y -c bioconda kraken2
 
 # Install samtools
-conda install "samtools>=1.10"
+conda install -y "samtools>=1.10"
 
 # Install mafft
-conda install -c bioconda mafft
+conda install -y -c bioconda mafft
 
 # Install MASH
-conda install -c bioconda mash
+conda install -y -c bioconda mash
 
 # # Download pre-built kraken2 database with human genome only
 mkdir kraken2_human_db
