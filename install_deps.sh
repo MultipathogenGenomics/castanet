@@ -3,16 +3,16 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 
 # Install kraken2 via conda, for removing human reads
-conda install -c bioconda kraken2
+conda install -y -c bioconda kraken2
 
 # Install samtools
-conda install "samtools>=1.10"
+conda install -y "samtools>=1.10"
 
 # Install mafft
-conda install -c bioconda mafft
+conda install -y -c bioconda mafft
 
 # Install MASH
-conda install -c bioconda mash
+conda install -y -c bioconda mash
 
 # # Download pre-built kraken2 database with human genome only
 mkdir kraken2_human_db
@@ -23,16 +23,20 @@ tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
 wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
 unzip Trimmomatic-0.39.zip
 rm Trimmomatic-0.39.zip
-alias trimmomatic="java -jar Trimmomatic-0.39/trimmomatic-0.39.jar"
 
 # Download BWA
 curl -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 | tar jxf -
-alias bwa="bwa-mem2-2.2.1_x64-linux/bwa-mem2"
 
 # Install viral consensus tool
-apt install libbz2-dev libcurl4-openssl-dev liblzma-dev g++
+wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj
+cd htslib-*
+autoreconf -i
+./configure
+make
+sudo make install
+cd ..
+
 git clone https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus
 make
-sudo mv viral_consensus /usr/local/bin/
 cd ..

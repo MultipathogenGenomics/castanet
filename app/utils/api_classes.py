@@ -35,6 +35,11 @@ class Data_PostFilt(BaseModel):
                            description="Post hoc filter BAM file to remove reads marked as contaminations")
 
 
+class Data_GenerateCounts(BaseModel):
+    SingleEndedReads: bool = Query(False,
+                                   description="Set to true if using single-ended reads, e.g. if sequencing run ended half-way through.")
+
+
 class Data_ExpName(BaseModel):
     ExpName: str = Query('myexperiment',
                          description="Name your experiment/batch")
@@ -85,6 +90,8 @@ class Data_ConsensusParameters(BaseModel):
                                      description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
     ConsensusMapQ: float = Query(1.0,
                                  description="Minimum quality value for a target consensus to be included in the remapped consensus.")
+    ConsensusCleanFiles: bool = Query(True,
+                                      description="If True, consensus generator will delete BAM files for reads aggregated to each target organism. Disable to retain files for use in downstream analysis.")
     GtFile: Optional[str] = Query('',
                                   description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
     GtOrg: Optional[str] = Query('',
@@ -96,13 +103,13 @@ class Data_ConsensusParameters(BaseModel):
 
 class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-               Data_ConsensusParameters, Data_TrimmomaticParams):
+               Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
 class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
                     Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-                    Data_ConsensusParameters, Data_TrimmomaticParams):
+                    Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
@@ -122,7 +129,7 @@ class Mapping_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_RefStem):
     pass
 
 
-class Count_map_data(Data_ExpDir, Data_SeqName, Data_ExpName):
+class Count_map_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_GenerateCounts):
     pass
 
 
@@ -136,7 +143,7 @@ class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
 
 class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
                       Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
-                      Data_FilterFilters, Data_ConsensusParameters, Data_TrimmomaticParams):
+                      Data_FilterFilters, Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 

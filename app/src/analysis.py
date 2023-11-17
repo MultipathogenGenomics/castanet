@@ -433,6 +433,16 @@ class Analysis:
         loginfo(
             f'Saved top hits to {self.output_dir}{self.a["ExpName"]}_tophits.csv')
 
+    def read_dist_piechart(self):
+        df = pd.read_csv(
+            f"{self.output_dir}{self.a['SeqName']}_depth_with_clin.csv")
+        fig = px.pie(df, values=df["n_reads_all"], names=df["probetype"],
+                     title=f"Read distribution, {self.a['SeqName']}")
+        fig.update_traces(textposition='inside',
+                          textinfo='percent+label+value')
+        fig.write_image(
+            f"{self.output_dir}/{self.a['SeqName']}_read_distributions.png")
+
     def main(self):
         '''Entrypoint. Extract & merge probe lengths, reassign dupes if specified, then call anlysis & save'''
         end_sec_print("INFO: Analysis started.")
@@ -448,6 +458,7 @@ class Analysis:
             depth, on=['sampleid', 'probetype'], how='left')
         self.df.to_csv(
             f'{self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz', index=False, compression='gzip')
+        self.read_dist_piechart()
         loginfo(
             f'Finished. Saved final data frame as {self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz')
         end_sec_print("INFO: Analysis complete.")

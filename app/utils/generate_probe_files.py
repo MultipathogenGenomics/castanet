@@ -54,7 +54,7 @@ class ProbeFileGen:
             header = header.replace("-", "_")
 
         for j in self.split_names:
-            '''SPECIFIC TO DEVELOPER'S SET - Convert EnterovirusX/InfluenzaY to _X'''
+            '''SPECIFIC TO DEVELOPER'S SET - Convert EnterovirusX/Influenza-Y to _X/_Y'''
             if j in header and not "bact" in header.lower():
                 header = header.lower()
                 header = f'>{j}_{header.split(j)[1].replace("_","").replace("-","")}_{j}{"".join(header.split(j)[2:])}'
