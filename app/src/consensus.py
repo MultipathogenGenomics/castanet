@@ -321,7 +321,10 @@ class Consensus:
         rm(f"{self.fnames['temp_folder']}", "-r")
         rm(f"{self.fnames['flat_cons_seqs']} {self.fnames['flat_cons_refs']}")
         find_and_delete(
-            f"{self.a['folder_stem']}grouped_reads/ {self.a['folder_stem']}consensus_data/", "*.bam")
+            f"{self.a['folder_stem']}grouped_reads/", "*.bam")
+        if self.a['ConsensusCleanFiles']:
+            find_and_delete(
+                f"{self.a['folder_stem']}consensus_data/", "*.bam")
 
     def generate_summary(self, org) -> None:
         dfpath = f"{self.a['folder_stem']}/consensus_seq_stats.csv"

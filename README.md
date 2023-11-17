@@ -42,13 +42,13 @@ We assume the user's system is set up with the following. See attached links for
 
 ## Environment setup
 We strongly recommend creating a new Conda environment for your Castanet install:
-```$conda create --name castanet python==3.10```
+```$ conda create --name castanet python==3.10```
 Which can be activated with:
-```$conda activate castanet```
+```$ conda activate castanet```
 Before installing your pip libraries:
-```$pip install -r requirements.txt```
+```$ pip install -r requirements.txt```
 Then the software dependencies:
-```$sudo . install_deps.sh```
+```$ sudo . install_deps.sh```
 
 ## Prerequisite files
 Users may provide the following data to use Castanet:
@@ -93,10 +93,12 @@ Your probe panel will be unique to your experiments, hence we have not provided 
 
 ```
 {
+  "SingleEndedReads": false,
   "TrimMinLen": 36,
   "ConsensusMinD": 10,
   "ConsensusCoverage": 30,
   "ConsensusMapQ": 1,
+  "ConsensusCleanFiles": true,
   "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
   "ExcludeIds": "9606",
   "RetainIds": "",
@@ -263,6 +265,14 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 ```https://github.com/niemasd/ViralConsensus```
 
 # Changelog
+## Version 4, 17/11/23
+1. Support for outputting intermediate files from consensus generation, for downstream analysis
+1. Support for single ended read sets
+1. Installer scripts modified to allow for more minimal linux builds and newer dependency versions
+1. Aggregation function regular expressions modified for BACT-containing probe names
+1. Deprecated requirement for inputting probes csv file; now inferred from refstem
+1. Various error handler improvements
+
 ## Version 3, 12/09/23
 1. Refinement of consensus generator functions; addition of user-tunable threshold parameters, fix for long terminal gaps, expanding range of statistics reported, error handling, refactoring etc.
 1. Migration of plotting engine to Plotly
