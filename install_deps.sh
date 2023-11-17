@@ -23,16 +23,19 @@ tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
 wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
 unzip Trimmomatic-0.39.zip
 rm Trimmomatic-0.39.zip
-alias trimmomatic="java -jar Trimmomatic-0.39/trimmomatic-0.39.jar"
 
 # Download BWA
 curl -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 | tar jxf -
-alias bwa="bwa-mem2-2.2.1_x64-linux/bwa-mem2"
 
 # Install viral consensus tool
-git clone --recurse-submodules https://github.com/niemasd/ViralConsensus.git
+wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj
+cd htslib-*
+autoreconf -i
+./configure
+make
+sudo make install
+
+git clone https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus
 make
-sudo mv viral_consensus /usr/local/bin/
 cd ..
-alias viral_consensus="./ViralConsensus/viral_consensus"
