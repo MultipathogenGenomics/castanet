@@ -272,7 +272,7 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 ## Version 4, 17/11/23
 1. Support for outputting intermediate files from consensus generation, for downstream analysis
 1. Support for single ended read sets
-1. Installer scripts modified to allow for more minimal linux builds and newer dependency versions
+1. Installer scripts modified to allow for more minimal linux builds and newer dependency versions (htslib/viral_consensus)
 1. Aggregation function regular expressions modified for BACT-containing probe names
 1. Deprecated requirement for inputting probes csv file; now inferred from refstem
 1. Various error handler improvements
