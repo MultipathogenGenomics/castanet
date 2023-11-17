@@ -30,19 +30,9 @@ curl -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2
 alias bwa="bwa-mem2-2.2.1_x64-linux/bwa-mem2"
 
 # Install viral consensus tool
-# Install viral consensus tool
-git clone https://github.com/niemasd/ViralConsensus.git
+git clone --recurse-submodules https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus
-wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj
-cd htslib-*
-autoreconf -i
-./configure
 make
-# sudo make install
+sudo mv viral_consensus /usr/local/bin/
 cd ..
-rmdir htslib
-mv htslib-* htslib
-make
-cd ..
-# sudo mv viral_consensus /usr/local/bin/
-cd ..
+alias viral_consensus="./ViralConsensus/viral_consensus"

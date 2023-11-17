@@ -48,7 +48,9 @@ Which can be activated with:
 Before installing your pip libraries:
 ```$ pip install -r requirements.txt```
 And the following Command Line packages:
-```$ sudo apt install unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev``
+```$ sudo apt update -y```
+```$ sudo apt install -y unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev``
+(N.b. if any of the above commands fail, try ```$ sudo apt --fix-broken install```)
 Finally these bioinformatics dependencies:
 ```$ bash install_deps.sh```
 
