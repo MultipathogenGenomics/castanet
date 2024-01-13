@@ -51,7 +51,7 @@ class Parse_bam_positions:
             improper_match = (tlen == 0) and (self.getmatchsize(
                 cigar) >= self.min_match_length)
             try:
-                tlen = re.search(r'[0-9]*M', cigar)[0].replace("M", "")
+                tlen = self.getmatchsize(cigar)
             except:
                 tlen = 0
 

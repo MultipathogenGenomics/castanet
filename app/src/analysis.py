@@ -187,7 +187,6 @@ class Analysis:
 
     def add_depth(self, probelengths):
         ''' Calculate read depth per position. '''
-        # this is an example
         if self.a["DepthInf"]:
             loginfo(
                 f'Reading read depth information from {self.a["DepthInf"]}.')
@@ -222,17 +221,16 @@ class Analysis:
                 n_genes = len(gene_list)
                 target_list = g.target_id.unique()
                 n_targets = len(target_list)
-                Dd = {}
-                D1d = {}
+                Dd, D1d = {}, {}
                 for genename, gg in g.groupby('genename'):
                     loginfo(f'Processing {sampleid} - {genename}')
                     '''Generate two arrays for each probetype-genename group (D = number of occurrences, D1 = unique start/end positions)'''
                     D = np.zeros(int(gg.target_len.max()), dtype=np.uint32)
                     D1 = np.zeros(D.shape, dtype=np.uint32)
-                    D.fill(0)
-                    D1.fill(0)  # Clear target arrays
+                    # D.fill(0)
+                    # D1.fill(0)  # Clear target arrays RM < TODO Doesn't look like this does anything? test and rm
                     for target_id, gt in gg.groupby('target_id'):
-                        loginfo(f'..... target: {target_id[:100]}')
+                        loginfo(f'..... target: {target_id[:100]}.')
                         for _, row in gt.iterrows():
                             D[row.startpos-1:row.startpos-1+row.maplen] += row.n
                             D1[row.startpos-1:row.startpos-1+row.maplen] += 1
@@ -245,7 +243,7 @@ class Analysis:
                 '''Max possible number of genes for this probetype, aggregating all genes'''
                 nmax_genes = probelengths[probelengths.probetype ==
                                           probetype].genename.nunique()
-                '''Max possible positions for this probetype, aggregating all genes'''
+                '''Max possible positions for this probetype, aggregating all genes'''  # RM < TODO Use this calc to cap length of consensus
                 nmax_probetype = probelengths[probelengths.probetype == probetype].groupby(
                     'genename').target_len.max().sum()
 
@@ -280,7 +278,7 @@ class Analysis:
                     plot_df["position"], plot_df["All Reads"], plot_df["Deduplicated Reads"] = np.arange(
                         0, D.shape[0]), D, D1
                     fig = px.line(plot_df, x="position", y=[
-                                  "All Reads", "Deduplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
+                                  "All Reads", "Deduplicated Reads"],  # title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
                                   labels={"position": "Position", "value": "Num Reads"})
                     fig.update_layout(legend={"title_text": "", "orientation": "h", "entrywidth": 100,
                                       "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1})

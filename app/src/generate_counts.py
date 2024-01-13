@@ -7,7 +7,6 @@ def run_counts(p):
     '''Pipe mapped bam into parse functions, generate counts and consensus groupings'''
     p["ExpDir"] = f"{p['ExpDir']}/"
     bamview_fname = f"experiments/{p['ExpName']}/{p['SeqName']}_bamview.txt"
-    # RM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     single_ended = p["SingleEndedReads"]
 
     '''Split samtools pipe to python with persistent file for ease of debugging'''

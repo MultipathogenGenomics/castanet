@@ -7,7 +7,7 @@ from collections import Counter
 import plotly.express as px
 
 from app.utils.timer import timing
-from app.utils.shell_cmds import shell, make_dir, loginfo
+from app.utils.shell_cmds import shell, make_dir, loginfo, stoperr
 from app.utils.utility_fns import read_fa, save_fa, get_reference_org
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
@@ -44,10 +44,11 @@ class Consensus:
             match_str = f"{match_str}($|\s)"
         out = shell(f"samtools coverage {group_bam_fname} | grep -E '{match_str}'",
                     "Coverage, consensus filter bam", ret_output=True)
+
         try:
             out = out.decode().replace("\n", "").split("\t")[6:9]
         except Exception as ex:
-            raise ValueError(
+            raise loginfo(
                 f"Could not generate a consensus for target: {tar_name}\nException: {ex}")
 
         assert len(
@@ -55,6 +56,8 @@ class Consensus:
 
         if float(out[0]) < self.a['ConsensusMinD'] or float(out[2]) < self.a["ConsensusMapQ"]:
             '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
+            loginfo(
+                f"Not adding subconsensus for {tar_name} to consensus for organism, as min D was {out[0]} and Map Q was {out[2]}")
             shell(f"rm -r {self.a['folder_stem']}grouped_reads/{tar_name}/")
             return
         else:
@@ -207,8 +210,11 @@ class Consensus:
         shell(f"""samtools merge {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam {' '.join([f'{self.a["folder_stem"]}grouped_reads/{i}/{i}.bam' for i in target_dirs])}""",
               "Samtools merge, ref-adjusted consensus call (CONSENSUS.PY)")
         '''Output coverage stats for target consensuses'''
-        shell(f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | "
-              f"grep -E '{'|'.join(self.probe_names[self.probe_names['probetype'] == org_name]['orig_target_id'].tolist())}' > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+        try:
+            shell(f"samtools coverage {self.a['folder_stem']}consensus_data/{org_name}/collated_reads_unf.bam | "
+                  f"grep -E '{'|'.join(self.probe_names[self.probe_names['probetype'] == org_name]['orig_target_id'].tolist())}' > {self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv")
+        except OSError as e:
+            stoperr(f"We couldn't call a consensus because your list of probes is too long. This is a kernel limitation. Can you reduce the size of your probe panel?")
 
         '''Get coverage for each consensus, filter collated bam by consensus coverage and map q'''
         coverage_df = pd.read_csv(f"{self.a['folder_stem']}consensus_data/{org_name}/target_consensus_coverage.csv", sep="\t",
@@ -368,6 +374,7 @@ class Consensus:
         end_sec_print(
             "INFO: Calling consensus sequences\nThis may take a little while...")
         samtools_index(f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
+
         for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
             self.filter_bam(tar_name)
 
