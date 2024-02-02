@@ -277,7 +277,7 @@ async def post_filter(payload: Post_filter_data) -> str:
 '''Convenience functions'''
 
 
-@app.post("/convert_probes/", tags=["Convenience functions"])
+@app.post("/convert_mapping_reference/", tags=["Convenience functions"])
 async def convertprobes(payload: Convert_probe_data) -> str:
     payload = jsonable_encoder(payload)
     clf = ProbeFileGen(payload)
