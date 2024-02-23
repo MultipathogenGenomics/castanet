@@ -10,6 +10,7 @@ from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
 from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
+from app.utils.error_handlers import check_readf_ext
 from app.utils.generate_probe_files import ProbeFileGen
 from app.utils.combine_batch_output import combine_output_csvs
 from app.utils.dependency_check import Dependencies
@@ -122,20 +123,25 @@ def get_batch_seqnames(batch_name) -> list:
     fstems = []
     folders = sorted(os.listdir(batch_name))
     for folder in folders:
+        ext = check_readf_ext(f"{batch_name}/{folder}")
+        if "fq" in ext:
+            regex_str = r"[\s\S]*?\.fq.gz"
+        else:
+            regex_str = r"[\s\S]*?\.fastq.gz"
         f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
-            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)]  # TODO adapt for fq
+            os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
         if "_R1" in f_full[0] or "_R2" in f_full[0]:
             temp = []
             raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
-                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)]
+                os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
             for i in range(0, 2):
                 temp.append(
-                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fq.gz")[0]}_{i+1}.fq.gz')
+                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(ext)[0]}_{i+1}.{ext}')
                 shell(f"mv {raw_names[i]} {temp[i]}")
         else:
             temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
         f = ["_".join(i.split("_")[:-1]).split("/")[-1]
-             for i in temp if re.match(r"[\s\S]*?\.fq.gz", i)]
+             for i in temp if re.match(regex_str, i)]
         assert len(
             f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fastq.gz files."
         assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."

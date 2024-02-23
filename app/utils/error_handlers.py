@@ -129,3 +129,16 @@ def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
             f"INFO: Target {tar_name} is not the GT organism, so ref-adjusted consensus not being built for it")
         return True
     return False
+
+
+def check_readf_ext(dir):
+    fnames = os.listdir(dir)
+    if "fq" in fnames[0]:
+        ext = "fq"
+    elif "fastq" in fnames[0]:
+        ext = "fastq"
+    else:
+        stoperr(f"Input files ({fnames}) don't appear to be of type .fq or .fastq (regardless of gz compression). Please check your files are in the correct format and that there's nothing else in the folder.")
+    if "gz" in fnames[0]:
+        ext += ".gz"
+    return ext

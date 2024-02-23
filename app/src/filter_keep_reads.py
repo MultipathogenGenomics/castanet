@@ -5,7 +5,7 @@ from collections import deque
 
 from app.utils.shell_cmds import loginfo, read_line, shell
 from app.utils.argparsers import parse_args_filter_keep_reads
-from app.utils.error_handlers import error_handler_filter_keep_reads
+from app.utils.error_handlers import error_handler_filter_keep_reads, check_readf_ext
 from app.utils.system_messages import end_sec_print
 
 
@@ -18,9 +18,10 @@ class FilterKeepReads:
     def __init__(self, argies, api_entry=True) -> None:
         '''Convert API arguments to format of argparser'''
         self.a = argies
+        self.ext = check_readf_ext(f"{argies['ExpDir']}/")
         if api_entry:
             self.a["input_file"] = [
-                f"{argies['ExpDir']}/{argies['SeqName']}_{i+1}.fq.gz" for i in range(0, 2)]  # TODO support both fastq and fq
+                f"{argies['ExpDir']}/{argies['SeqName']}_{i+1}.{self.ext}" for i in range(0, 2)]
             self.a["kraken"] = f"experiments/{argies['ExpName']}/{argies['SeqName']}_1.kraken"
         '''Run error handler, build output fnames, extend retain/exclude IDs from names'''
         self.a["o"], self.a["ExcludeIds"], self.a["RetainIds"] = error_handler_filter_keep_reads(
