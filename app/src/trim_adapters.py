@@ -14,7 +14,9 @@ def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar', a
         }
     else:
         p["ExpDir"] = f"{p['ExpDir']}/"
-    shell(f"{trim_path} PE -threads {p['NThreads']} experiments/{p['ExpName']}/{p['SeqName']}_1_filt.fastq experiments/{p['ExpName']}/{p['SeqName']}_2_filt.fastq experiments/{p['ExpName']}/{p['SeqName']}_1_clean.fastq experiments/{p['ExpName']}/{p['SeqName']}_1_trimmings.fq experiments/{p['ExpName']}/{p['SeqName']}_2_clean.fastq experiments/{p['ExpName']}/{p['SeqName']}_2_trimmings.fq ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}")  # was 80
+    shell(f"{trim_path} PE -threads {p['NThreads']} experiments/{p['ExpName']}/{p['SeqName']}_1_filt.fastq experiments/{p['ExpName']}/{p['SeqName']}_2_filt.fastq experiments/{p['ExpName']}/{p['SeqName']}_1_clean.fastq experiments/{p['ExpName']}/{p['SeqName']}_1_trimmings.fq experiments/{p['ExpName']}/{p['SeqName']}_2_clean.fastq experiments/{p['ExpName']}/{p['SeqName']}_2_trimmings.fq ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}")
+
+    # was 80
     try:
         reads_1, reads_2 = read_fa(f"experiments/{p['ExpName']}/{p['SeqName']}_1_clean.fastq"), read_fa(
             f"experiments/{p['ExpName']}/{p['SeqName']}_2_clean.fastq")

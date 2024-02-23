@@ -62,7 +62,6 @@ class ProbeFileGen:
         while header[-1] == "_":
             '''Fix random amount of trailing _'s'''
             header = header[:-1]
-
         return header.lower().replace("--", "-").replace("|", "-")
 
     def qc(self) -> None:
@@ -103,10 +102,16 @@ class ProbeFileGen:
             clean_seqs = []
 
             '''Iterate over seqs, sort and concat incomplete sequences. Call text cleaner on header lines'''
-            for seq in seqs:
+            for idx, seq in enumerate(seqs):
                 if len(seq) == 0:
                     """Empty line, ignore"""
                     continue
+                if idx == len(seqs) - 1:
+                    '''Last line'''
+                    current_seq_block = current_seq_block + seq
+                    clean_seqs.append([self.header_cleaner(
+                        current_header), current_seq_block.upper()])
+                    break
 
                 if seq[0] == ">":
                     """line = header"""

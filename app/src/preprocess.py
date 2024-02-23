@@ -11,5 +11,5 @@ def run_kraken(p, api_entry=True):
             "ExpDir": p.ExpDir,
             "SeqName": p.SeqName
         }
-    shell(f'kraken2 --db {p["KrakenDbDir"]} --threads {p["NThreads"]} {p["ExpDir"]}/{p["SeqName"]}_1.fastq.gz > experiments/{p["ExpName"]}/{p["SeqName"]}_1.kraken')
+    shell(f'kraken2 --db {p["KrakenDbDir"]} --threads {p["NThreads"]} {p["ExpDir"]}/{p["SeqName"]}_1.fq.gz > experiments/{p["ExpName"]}/{p["SeqName"]}_1.kraken')
     end_sec_print(f"Kraken2 annotations complete")
