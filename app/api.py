@@ -116,19 +116,19 @@ def get_batch_seqnames(batch_name) -> list:
     folders = sorted(os.listdir(batch_name))
     for folder in folders:
         f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
-            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)]
         if "_R1" in f_full[0] or "_R2" in f_full[0]:
             temp = []
             raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
-                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)]
             for i in range(0, 2):
                 temp.append(
-                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fastq.gz")[0]}_{i+1}.fastq.gz')
+                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fq.gz")[0]}_{i+1}.fq.gz')
                 shell(f"mv {raw_names[i]} {temp[i]}")
         else:
             temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
         f = ["_".join(i.split("_")[:-1]).split("/")[-1]
-             for i in temp if re.match(r"[\s\S]*?\.fastq.gz", i)]
+             for i in temp if re.match(r"[\s\S]*?\.fq.gz", i)]
         assert len(
             f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fasta.gz files."
         assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."

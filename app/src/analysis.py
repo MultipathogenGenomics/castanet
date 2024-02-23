@@ -278,7 +278,7 @@ class Analysis:
                     plot_df["position"], plot_df["All Reads"], plot_df["Deduplicated Reads"] = np.arange(
                         0, D.shape[0]), D, D1
                     fig = px.line(plot_df, x="position", y=[
-                                  "All Reads", "Deduplicated Reads"],  # title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
+                                  "All Reads", "Deduplicated Reads"], title=f'{sampleid}\n{probetype} ({n_targets}/{nmax_targets} targets in {n_genes}/{nmax_genes} genes)',
                                   labels={"position": "Position", "value": "Num Reads"})
                     fig.update_layout(legend={"title_text": "", "orientation": "h", "entrywidth": 100,
                                       "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1})

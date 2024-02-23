@@ -58,6 +58,7 @@ class Consensus:
             '''If coverage/depth don't surpass threshold, delete grouped reads dir'''
             loginfo(
                 f"Not adding subconsensus for {tar_name} to consensus for organism, as min D was {out[0]} and Map Q was {out[2]}")
+            # TODO DISABLED FOR TEST
             shell(f"rm -r {self.a['folder_stem']}grouped_reads/{tar_name}/")
             return
         else:
@@ -67,10 +68,14 @@ class Consensus:
 
     def collate_consensus_seqs(self, tar_name) -> None:
         '''Read and collate consensus seqs from per target to per organism'''
-        seqs_and_refs = [i for i in read_fa(
-            f"{self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta") if tar_name in i[0]]
-        seqs_and_refs = [[self.aggregate_to_probename(
-            i[0]), i[0], i[1]] for i in seqs_and_refs]    # aggn, refn, seq
+        try:
+            seqs_and_refs = [i for i in read_fa(
+                f"{self.a['folder_stem']}grouped_reads/{tar_name}/consensus_seqs_{tar_name}.fasta") if tar_name in i[0]]
+            seqs_and_refs = [[self.aggregate_to_probename(
+                i[0]), i[0], i[1]] for i in seqs_and_refs]    # aggn, refn, seq
+        except Exception as ex:
+            print(f"***{ex}")
+            return
 
         if len(seqs_and_refs) == 0:
             return

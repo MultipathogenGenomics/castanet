@@ -17,7 +17,7 @@ class Parse_bam_positions:
     '''
 
     def __init__(self, argies) -> None:
-        '''N.b. argies are not a dict, but a namespace!!'''
+        '''N.b. argies are a namespace, not a dict!!'''
         self.min_match_length = 40
         self.argies = argies
         self.n = 10  # Min n reads to decide we want to make a consensus
@@ -47,7 +47,7 @@ class Parse_bam_positions:
             improper_match = (tlen == 0) and (self.getmatchsize(
                 cigar) >= self.min_match_length) and (get_gene_orgid(ref) == get_gene_orgid(ref2))
         else:
-            '''RM < Experimental, for use with single ended sets (e.g. when Sequencer explodes mid-run)'''
+            '''Experimental, for use with single ended sets (e.g. when Sequencer explodes mid-run)'''
             improper_match = (tlen == 0) and (self.getmatchsize(
                 cigar) >= self.min_match_length)
             try:
