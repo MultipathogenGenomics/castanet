@@ -12,6 +12,7 @@ from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
 from app.utils.generate_probe_files import ProbeFileGen
 from app.utils.combine_batch_output import combine_output_csvs
+from app.utils.dependency_check import Dependencies
 from app.src.preprocess import run_kraken
 from app.src.filter_keep_reads import FilterKeepReads
 from app.src.trim_adapters import run_trim
@@ -21,7 +22,7 @@ from app.src.consensus import Consensus
 from app.src.analysis import Analysis
 from app.src.post_filter import run_post_filter
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data,
-                                   Trim_data, Mapping_data, Count_map_data, Analysis_data,
+                                   Trim_data, Mapping_data, Count_map_data, Analysis_data, Dep_check_data,
                                    Post_filter_data, Consensus_data, Eval_data, Convert_probe_data)
 
 description = """
@@ -84,6 +85,10 @@ def process_payload(payload) -> dict:
 async def read_root() -> dict:
     return {"response": "API is healthy. Append the current URL to include '/docs/' at the end to visit the GUI."}
 
+@app.post("/check_dependencies/", tags=["Convenience functions"])
+async def check_deps(payload: Dep_check_data) -> dict:
+    clf = Dependencies(payload)
+    return clf.main()
 
 @app.post("/batch_eval/", tags=["Dev endpoints"])
 async def batch(payload: Batch_eval_data) -> str:
@@ -116,21 +121,21 @@ def get_batch_seqnames(batch_name) -> list:
     folders = sorted(os.listdir(batch_name))
     for folder in folders:
         f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
-            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+            os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)] # TODO adapt for fq
         if "_R1" in f_full[0] or "_R2" in f_full[0]:
             temp = []
             raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
-                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fastq.gz", i)]
+                os.listdir(f"{batch_name}/{folder}")) if re.match(r"[\s\S]*?\.fq.gz", i)]
             for i in range(0, 2):
                 temp.append(
-                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fastq.gz")[0]}_{i+1}.fastq.gz')
+                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(".fq.gz")[0]}_{i+1}.fq.gz')
                 shell(f"mv {raw_names[i]} {temp[i]}")
         else:
             temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
         f = ["_".join(i.split("_")[:-1]).split("/")[-1]
-             for i in temp if re.match(r"[\s\S]*?\.fastq.gz", i)]
+             for i in temp if re.match(r"[\s\S]*?\.fq.gz", i)]
         assert len(
-            f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fasta.gz files."
+            f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fastq.gz files."
         assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."
         fstems.append([list(set(f))[0], f_full])
     return fstems

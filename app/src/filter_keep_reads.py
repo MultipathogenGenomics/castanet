@@ -20,7 +20,7 @@ class FilterKeepReads:
         self.a = argies
         if api_entry:
             self.a["input_file"] = [
-                f"{argies['ExpDir']}/{argies['SeqName']}_{i+1}.fastq.gz" for i in range(0, 2)]
+                f"{argies['ExpDir']}/{argies['SeqName']}_{i+1}.fq.gz" for i in range(0, 2)] # TODO support both fastq and fq
             self.a["kraken"] = f"experiments/{argies['ExpName']}/{argies['SeqName']}_1.kraken"
         '''Run error handler, build output fnames, extend retain/exclude IDs from names'''
         self.a["o"], self.a["ExcludeIds"], self.a["RetainIds"] = error_handler_filter_keep_reads(
