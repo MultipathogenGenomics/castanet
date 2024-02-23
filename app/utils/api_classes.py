@@ -155,6 +155,8 @@ class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,
                 Data_ConsensusParameters):
     pass
 
+class Dep_check_data(Data_KrakenDir, Data_AdaptP):
+    pass
 
 class Convert_probe_data(BaseModel):
     InputFolder: str = Query("",
