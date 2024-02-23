@@ -88,7 +88,7 @@ async def read_root() -> dict:
 
 @app.post("/check_dependencies/", tags=["Convenience functions"])
 async def check_deps(payload: Dep_check_data) -> dict:
-    clf = Dependencies(payload)
+    clf = Dependencies(jsonable_encoder(payload))
     return clf.main()
 
 
