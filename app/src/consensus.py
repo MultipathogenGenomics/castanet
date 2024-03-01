@@ -161,8 +161,12 @@ class Consensus:
         shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
-        call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-                   f"{org_name}_target_consensus_alignment", is_eval=False)
+        try:
+            call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+                       f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", is_eval=False)
+        except FileNotFoundError:
+            raise SystemError(
+                "Castanet couldn't construct a consensus alignment graph")
 
         '''Return flat consensus'''
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)

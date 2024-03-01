@@ -14,15 +14,11 @@ class SimilarityGraph:
     https://www.biotite-python.org/examples/gallery/sequence/pi3k_alignment.html#sphx-glr-examples-gallery-sequence-pi3k-alignment-py'''
 
     def __init__(self, ExpName, RefOrg, in_fname, out_fname, is_eval=True) -> None:
-        if is_eval:
-            fol = "evaluation"
-        else:
-            fol = f"consensus_data/{RefOrg}/"
         self.a = {
             "folder_stem": f"experiments/{ExpName}/",
             "ref_org": f"{RefOrg}",
             "in_fname": in_fname,
-            "out_fname": f"experiments/{ExpName}/{fol}/{out_fname}"
+            "out_fname": out_fname
         }
         self.bins = 200
         self.figsize = (18, 3.0)
