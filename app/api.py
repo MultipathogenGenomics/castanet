@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 
 from app.utils.shell_cmds import stoperr, shell
@@ -10,7 +10,7 @@ from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir
 from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
-from app.utils.error_handlers import check_readf_ext
+from app.utils.error_handlers import check_readf_ext, error_handler_api
 from app.utils.generate_probe_files import ProbeFileGen
 from app.utils.combine_batch_output import combine_output_csvs
 from app.utils.dependency_check import Dependencies
@@ -71,12 +71,47 @@ app = FastAPI(
 
 def process_payload(payload) -> dict:
     payload = jsonable_encoder(payload)
-    payload["NThreads"] = os.cpu_count()
+
+    if "NThreads" in payload.keys():
+        if type(payload["NThreads"]) == str:
+            if payload["NThreads"] == "auto":
+                payload["NThreads"] = os.cpu_count()
+            elif payload["NThreads"] == "hpc":
+                payload["NThreads"] == 1
+            else:
+                stoperr(
+                    f"NThreads parameter should either be an integer, or 'auto' or 'hpc'.")
+        elif type(payload["NThreads"]) == int:
+            pass
+        else:
+            stoperr(
+                f"NThreads parameter should either be an integer, or 'auto' or 'hpc'.")
+
     if "ConsensusMinD" in payload.keys():
         if payload["ConsensusMinD"] <= 2:
             stoperr(f"Consuensus min depth must exceed 2, otherwise you would inherit sections of reference sequence in the final remapped consensus.")
+
+    if "ExpDir" in payload.keys():
+        payload["SeqNames"] = enumerate_read_files(payload["ExpDir"])
+
     write_input_params(payload)
     return payload
+
+
+def enumerate_read_files(exp_dir, batch_name=None):
+    accepted_formats = [".fq", ".fastq"]
+    if batch_name:
+        exp_dir = f"{batch_name}/{exp_dir}"
+    f_full = [f"{exp_dir}/{i}" for i in os.listdir(
+        exp_dir) if any(subst in i for subst in accepted_formats)]
+    assert len(
+        f_full) == 2, f"ERROR: Please ensure there are only 2 read files in your experiment directory. I detected these: {f_full}"
+    return f_full
+
+# def find_batch_files(folder, batch_name):
+#     accepted_formats = ["fq", "fastq"]
+#     f_full = [f"{batch_name}/{folder}/{i}" for i in os.listdir(f"{batch_name}/{folder}") if any(subst in i for subst in accepted_formats)]
+#     return f_full
 
 
 '''Dev Endpoints'''
@@ -98,73 +133,73 @@ async def batch(payload: Batch_eval_data) -> str:
     st = time.time()
     payload = process_payload(payload)
     payload["StartTime"] = time.time()
-    SeqNames = get_batch_seqnames(payload["BatchName"])
+    SeqNamesList = [enumerate_read_files(
+        folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"]))]
     agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
     errs = []
-    for i in SeqNames:
+    for SeqNames in SeqNamesList:
         try:
-            payload["ExpDir"] = "/".join(i[1][1].split("/")[:-1])
-            payload["ExpName"] = payload["SeqName"] = i[0]
+            exp_name = SeqNames[0].split("/")[2]
+            payload["SeqNames"] = SeqNames
+            payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
+            payload["ExpName"] = exp_name
             agg_analysis_csvs.append(
-                f"experiments/{payload['ExpName']}/{payload['SeqName']}_depth_with_clin.csv")
+                f"experiments/{payload['ExpName']}/{exp_name}_depth_with_clin.csv")
             run_end_to_end(payload)
             do_eval(payload)
         except Exception as ex:
-            errs.append(i[0])
+            err = error_handler_api(ex)
+            errs.append(exp_name)
             end_sec_print(
-                f"REGISTERED ERROR {payload['SeqName']} WITH EXCEPTION: {ex}")
-    msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
-    print(
-        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
-    return "Task complete. See terminal output for details."
+                f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
+    if len(errs) < 1:
+        msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
+        print(
+            f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
+        return "Batch process task complete. See terminal output for details."
+    else:
+        return "Batch process task completed with errors. See terminal output for details."
 
+# def get_batch_seqnames(batch_name) -> list:
+        # ext = check_readf_ext(f"{batch_name}/{folder}")  # TODO AUTOMATE
+        # if "fq" in ext:
+        #     regex_str = r"[\s\S]*?\.fq.gz"
+        # else:
+        #     regex_str = r"[\s\S]*?\.fastq.gz"
 
-def get_batch_seqnames(batch_name) -> list:
-    fstems = []
-    folders = sorted(os.listdir(batch_name))
-    for folder in folders:
-        ext = check_readf_ext(f"{batch_name}/{folder}")
-        if "fq" in ext:
-            regex_str = r"[\s\S]*?\.fq.gz"
-        else:
-            regex_str = r"[\s\S]*?\.fastq.gz"
-        f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
-            os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
-        if "_R1" in f_full[0] or "_R2" in f_full[0]:
-            temp = []
-            raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
-                os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
-            for i in range(0, 2):
-                temp.append(
-                    f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(ext)[0]}_{i+1}.{ext}')
-                shell(f"mv {raw_names[i]} {temp[i]}")
-        else:
-            temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
-        f = ["_".join(i.split("_")[:-1]).split("/")[-1]
-             for i in temp if re.match(regex_str, i)]
-        assert len(
-            f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fastq.gz files."
-        assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."
-        fstems.append([list(set(f))[0], f_full])
-    return fstems
-
-
-@app.post("/end_to_end/", tags=["Dev endpoints"])
-async def end_to_end(payload: E2e_data) -> None:
-    payload = process_payload(payload)
-    end_sec_print(
-        f"INFO: Starting run, saving results to {payload['ExpName']}.")
-    run_end_to_end(payload)
+        # f_full = [f'{batch_name}/{folder}/{"_".join(i.split("_")[:-1])}' for i in sorted(
+        #     os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
+        # if "_R1" in f_full[0] or "_R2" in f_full[0]:
+        #     temp = []
+        #     raw_names = [f'{batch_name}/{folder}/{"_".join(i.split("_"))}' for i in sorted(
+        #         os.listdir(f"{batch_name}/{folder}")) if re.match(regex_str, i)]
+        #     for i in range(0, 2):
+        #         temp.append(
+        #             f'{raw_names[i].replace(f"_R1", "").replace("_R2","").split(ext)[0]}_{i+1}.{ext}')
+        #         shell(f"mv {raw_names[i]} {temp[i]}")
+        # else:
+        #     temp = [i for i in os.listdir(f"{batch_name}/{folder}")]
+        # f = ["_".join(i.split("_")[:-1]).split("/")[-1]
+        #      for i in temp if re.match(regex_str, i)]
+        # assert len(
+        #     f) == 2,  "Incorrect number of files in directory, please ensure your experiment folder contains only two fastq.gz files."
+        # assert f[0] == f[1], "Inconsistent naming between paired read files, please revise your naming conventions."
+        # fstems.append([list(set(f))[0], f_full])
+    # return fstems
 
 
 @app.post("/end_to_end_eval/", tags=["Dev endpoints"])
 async def end_to_end_eval(payload: E2e_eval_data) -> None:
-    payload = process_payload(payload)
-    payload["StartTime"] = time.time()
-    end_sec_print(
-        f"INFO: Starting run, saving results to {payload['ExpName']}.")
-    run_end_to_end(payload)
-    do_eval(payload)
+    try:
+        payload = process_payload(payload)
+        payload["StartTime"] = time.time()
+        end_sec_print(
+            f"INFO: Starting run, saving results to {payload['ExpName']}.")
+        msg = run_end_to_end(payload)
+        do_eval(payload)
+        return msg
+    except Exception as ex:
+        return f"Castanet run failed, please see error message and terminal for more details: {ex}"
 
 
 @app.post("/evaulate/", tags=["Dev endpoints"])
@@ -186,10 +221,14 @@ def do_eval(payload) -> None:
 
 @app.post("/end_to_end/", tags=["End to end pipeline"])
 async def end_to_end(payload: E2e_data) -> None:
-    payload = process_payload(payload)
-    end_sec_print(
-        f"INFO: Starting run, saving results to {payload['ExpName']}.")
-    run_end_to_end(payload)
+    try:
+        payload = process_payload(payload)
+        end_sec_print(
+            f"INFO: Starting run, saving results to {payload['ExpName']}.")
+        msg = run_end_to_end(payload)
+        return msg
+    except Exception as ex:
+        return error_handler_api(ex)
 
 
 @timing

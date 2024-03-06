@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import subprocess as sp
 from collections import deque
+from termcolor import colored
 
 from app.utils.shell_cmds import loginfo, stoperr, read_line
 
@@ -13,14 +14,17 @@ def error_handler_filter_keep_reads(argies):
     '''
     retain_list, exclude_list, argies["o"] = deque(), deque(), []
     '''Check in path, set up output path'''
+    cnt = 1
     for inpath in argies["input_file"]:
         if not os.path.isfile(inpath):
             stoperr(f'Unable to open FastQ file {inpath}.')
-        outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
-            '.gz') else os.path.basename(inpath)
+        # outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
+        #     '.gz') else os.path.basename(inpath) # TODO DEPRECATED
+        # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
-        outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
-        argies["o"].append(outpath)
+        argies["o"].append(
+            f'experiments/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
+        cnt += 1
     loginfo(f'Output files {argies["o"]}')
 
     '''Check input files'''
@@ -64,7 +68,7 @@ def error_handler_filter_keep_reads(argies):
         except:
             stoperr(f'TaxID(s) {argies["RetainIds"]} invalid.')
     if not argies["ExcludeIds"] and not argies["RetainIds"]:
-        stoperr('Nothing to do. Exiting.')
+        stoperr('User opted to use Kraken filtering but no parameters were provided to exclude reads: please check your ExcludeIds and RetainIds arguments or set DoKrakenPreprocess to false.')
 
     return argies["o"], argies["ExcludeIds"], argies["RetainIds"]
 
@@ -131,7 +135,21 @@ def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
     return False
 
 
+def error_handler_api(ex):
+    import traceback
+    import logging
+    err = traceback.format_exc()
+    if type(ex) == SystemError:
+        err_short = ex
+    else:
+        print(colored(f"Unclassified Castanet error:", 'red'))
+        err_short = "Unclassified Castanet error: " + err.split('\n')[-2]
+    logging.error(err)
+    return f"Castanet run failed, please see error message and terminal for more details: {err_short}"
+
+
 def check_readf_ext(dir):
+    '''DEPRECATED'''
     fnames = os.listdir(dir)
     if "fq" in fnames[0]:
         ext = "fq"

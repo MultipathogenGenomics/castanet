@@ -24,8 +24,8 @@ wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-
 unzip Trimmomatic-0.39.zip
 rm Trimmomatic-0.39.zip
 
-# Download BWA
-curl -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 | tar jxf -
+# Install BWA
+conda install bwa-mem2
 
 # Install viral consensus tool
 wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj

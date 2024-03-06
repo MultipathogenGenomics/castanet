@@ -18,7 +18,7 @@ class Analysis:
         self.a = argies
         self.output_dir = f"experiments/{self.a['ExpName']}/"
         if api_entry:
-            self.a["input_file"] = f"{self.output_dir}/{self.a['SeqName']}_PosCounts.csv"
+            self.a["input_file"] = f"{self.output_dir}/{self.a['ExpName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
         self.df["target_id"] = self.df["target_id"].str.lower()
 
@@ -401,9 +401,9 @@ class Analysis:
                     f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
         else:
             loginfo(f"Inferring raw read number from bam file")
-            read_num = samtools_read_num(self.output_dir, self.a["SeqName"])
+            read_num = samtools_read_num(self.output_dir, self.a["ExpName"])
             samples = pd.DataFrame(
-                [{"sampleid": self.a["SeqName"], "pt": "", "rawreadnum": read_num}])
+                [{"sampleid": self.a["ExpName"], "pt": "", "rawreadnum": read_num}])
 
         if self.a["Clin"] != "":
             '''If supplied, merge clinical data'''
@@ -414,9 +414,9 @@ class Analysis:
         cdf['readprop'] = cdf.n_reads_all/cdf.rawreadnum
         loginfo(f'Added the following columns: {list(samples.columns)}')
         loginfo(
-            f'Saving {self.output_dir}{self.a["SeqName"]}_depth_with_clin.csv.')
+            f'Saving {self.output_dir}{self.a["ExpName"]}_depth_with_clin.csv.')
         cdf.to_csv(
-            f'{self.output_dir}{self.a["SeqName"]}_depth_with_clin.csv', index=False)
+            f'{self.output_dir}{self.a["ExpName"]}_depth_with_clin.csv', index=False)
         return cdf
 
     def save_tophits(self, depth):
@@ -433,13 +433,13 @@ class Analysis:
 
     def read_dist_piechart(self):
         df = pd.read_csv(
-            f"{self.output_dir}{self.a['SeqName']}_depth_with_clin.csv")
+            f"{self.output_dir}{self.a['ExpName']}_depth_with_clin.csv")
         fig = px.pie(df, values=df["n_reads_all"], names=df["probetype"],
-                     title=f"Read distribution, {self.a['SeqName']}")
+                     title=f"Read distribution, {self.a['ExpName']}")
         fig.update_traces(textposition='inside',
                           textinfo='percent+label+value')
         fig.write_image(
-            f"{self.output_dir}/{self.a['SeqName']}_read_distributions.png")
+            f"{self.output_dir}/{self.a['ExpName']}_read_distributions.png")
 
     def main(self):
         '''Entrypoint. Extract & merge probe lengths, reassign dupes if specified, then call anlysis & save'''

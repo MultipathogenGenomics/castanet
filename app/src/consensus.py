@@ -162,7 +162,7 @@ class Consensus:
               f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
         try:
-            call_graph(self.a["SeqName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
+            call_graph(self.a["ExpName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
                        f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", is_eval=False)
         except FileNotFoundError:
             raise SystemError(
@@ -286,7 +286,7 @@ class Consensus:
 
         '''Retrieve GT seq'''
         ref_seq = get_reference_org(
-            self.a['GtFile'], self.a["SeqName"], self.a['folder_stem'])
+            self.a['GtFile'], self.a["ExpName"], self.a['folder_stem'])
 
         '''Save ref seq and index, then run bwa mem of ref seq vs contigs'''
         loginfo(
@@ -382,7 +382,7 @@ class Consensus:
         '''Entrypoint. Index main bam, filter it, make target consensuses, then create flattened consensus'''
         end_sec_print(
             "INFO: Calling consensus sequences\nThis may take a little while...")
-        samtools_index(f"{self.a['folder_stem']}{self.a['SeqName']}.bam")
+        samtools_index(f"{self.a['folder_stem']}{self.a['ExpName']}.bam")
 
         for tar_name in os.listdir(f"{self.a['folder_stem']}grouped_reads/"):
             self.filter_bam(tar_name)

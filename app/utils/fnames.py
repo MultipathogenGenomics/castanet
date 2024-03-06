@@ -3,7 +3,7 @@
 
 def get_consensus_fnames(args):
     return {
-        "master_bam": f"{args['folder_stem']}{args['SeqName']}.bam",
+        "master_bam": f"{args['folder_stem']}{args['ExpName']}.bam",
         "flat_cons_refs": f"{args['folder_stem']}consensus_data/temp_refs.fasta",
         "flat_cons_seqs": f"{args['folder_stem']}consensus_data/temp_seqs.fasta",
         "grouped_reads_dir": f"{args['folder_stem']}grouped_reads/",

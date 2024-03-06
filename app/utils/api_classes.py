@@ -15,11 +15,6 @@ class Data_ExpDir(BaseModel):
                                   description="Path to retrieve and store data.")
 
 
-class Data_SeqName(BaseModel):
-    SeqName: str = Query('mysequence',
-                         description="Base filename for your input sequences. Naming convention is mysequence_1, ..._2.")
-
-
 class Data_AdaptP(BaseModel):
     AdaptP: FilePath = Query('data/all_adapters.fa',
                              description='Location of your Trimmomatic adapter sequences - may be in your Trimmomatic path, but a backup is in the data dir.')
@@ -38,6 +33,11 @@ class Data_PostFilt(BaseModel):
 class Data_GenerateCounts(BaseModel):
     SingleEndedReads: bool = Query(False,
                                    description="Set to true if using single-ended reads, e.g. if sequencing run ended half-way through.")
+
+
+class Data_NThreads(BaseModel):
+    NThreads: Union[int, str] = Query('auto',
+                                      description="Specify the number of threads for multi-core processing. Options: integer == this many threads; 'auto' == let Castanet choose number of threads; 'hpc' == select when running on a compute cluster (hard codes to 1).")
 
 
 class Data_ExpName(BaseModel):
@@ -101,62 +101,64 @@ class Data_ConsensusParameters(BaseModel):
 '''Endpoint objects'''
 
 
-class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class E2e_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
-class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class E2e_eval_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                     Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                     Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
-class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir, Data_TrimmomaticParams):
+class Preprocess_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_KrakenDir, Data_TrimmomaticParams):
     pass
 
 
-class Filter_keep_reads_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_FilterFilters, Data_TrimmomaticParams):
+class Filter_keep_reads_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_FilterFilters, Data_TrimmomaticParams):
     pass
 
 
-class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_TrimmomaticParams):
+class Trim_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_TrimmomaticParams):
     pass
 
 
-class Mapping_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_RefStem):
+class Mapping_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_RefStem):
     pass
 
 
-class Count_map_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_GenerateCounts):
+class Count_map_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_GenerateCounts):
     pass
 
 
-class Analysis_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AnalysisExtras, Data_RefStem):
+class Analysis_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AnalysisExtras, Data_RefStem):
     pass
 
 
-class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
+class Post_filter_data(Data_ExpDir, Data_NThreads, Data_ExpName):
     pass
 
 
-class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class Batch_eval_data(Data_BatchName, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                       Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
                       Data_FilterFilters, Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
-class Consensus_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_ConsensusParameters):
+class Consensus_data(Data_ExpName, Data_NThreads, Data_RefStem, Data_ConsensusParameters):
     pass
 
 
-class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,
+class Eval_data(Data_ExpName, Data_NThreads, Data_RefStem,
                 Data_ConsensusParameters):
     pass
 
+
 class Dep_check_data(Data_KrakenDir, Data_AdaptP):
     pass
+
 
 class Convert_probe_data(BaseModel):
     InputFolder: str = Query("",
