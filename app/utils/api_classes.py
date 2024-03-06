@@ -47,29 +47,34 @@ class Data_ExpName(BaseModel):
 
 class Data_KrakenDir(BaseModel):
     KrakenDbDir: DirectoryPath = Query('kraken2_human_db/',
-                                       description="Path to Kraken2 database for filtering human/other unwanted species reads.")
+                                       description="Path to Kraken2 database for filtering human/other unwanted species reads. Only used if DoKrakenPrefilter = true")
 
 
 class Data_FilterFilters(BaseModel):
+    DoKrakenPrefilter: bool = Query(True,
+                                    description="If true, run an initial pre-filtering step to label reads with Kraken2 and exclude those belonging to taxonomies indicated in Exclude/Retain IDs/Names arguments. If false, these other fields are ignored.")
+
     LineageFile: Union[None, str] = Query('data/ncbi_lineages_2023-06-15.csv.gz',
-                                          description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa.")
+                                          description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa. Only used if DoKrakenPrefilter = true.")
 
     ExcludeIds: Union[None, str] = Query("9606",
-                                         description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Set to 9606 to exclude Human.")
+                                         description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Set to 9606 to exclude Human. Only used if DoKrakenPrefilter = true.")
 
     RetainIds: Union[None, str] = Query("",
-                                        description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces.")
+                                        description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Only used if DoKrakenPrefilter = true.")
 
     RetainNames: Union[None, str] = Query("",
-                                          description="(OPTIONAL) Retain these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified.")
+                                          description="(OPTIONAL) Retain these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
     ExcludeNames: Union[None, str] = Query("Homo,Alteromonas,Achromobacter",
-                                           description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified.")
+                                           description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
 
 class Data_TrimmomaticParams(BaseModel):
+    DoTrimming: bool = Query(True,
+                             description="If true, use Trimmomatic to remove low quality reads and adapters. Minimum trim length can be set with TrimMinLen argument; if false, this extra argument is ignored.")
     TrimMinLen: int = Query(36,
-                            description="Values < than min trim length will be removed by Trimmomatic tool.")
+                            description="Values < than min trim length will be removed by Trimmomatic tool. Only used if DoTrimming = true")
 
 
 class Data_AnalysisExtras(BaseModel):

@@ -110,7 +110,7 @@ def error_handler_analysis(argies) -> pd.DataFrame:
         stoperr(f'Failed to read dataframe from {df} : {e}')
 
     if df.empty:
-        stoperr(f"Your Positions Count file is empty, meaning that Castanet didn't detect any significant hits in your input sample.")
+        stoperr(f"Your Positions Count file is empty, meaning that Castanet didn't detect any significant hits in your input sample. This can sometimes mask an upstream problem, but may also mean that your sample is low quality and/or genuinely has nothing that maps to your mapping reference.")
 
     if argies["DepthInf"] and not os.path.isfile(argies["DepthInf"]):
         stoperr(f'Unable to open precomputed depth file {argies["DepthInf"]}.')
@@ -140,7 +140,7 @@ def error_handler_api(ex):
     import logging
     err = traceback.format_exc()
     if type(ex) == SystemError:
-        err_short = ex
+        err_short = str(ex).encode("ascii", "ignore").decode()
     else:
         print(colored(f"Unclassified Castanet error:", 'red'))
         err_short = "Unclassified Castanet error: " + err.split('\n')[-2]
@@ -148,9 +148,8 @@ def error_handler_api(ex):
     return f"Castanet run failed, please see error message and terminal for more details: {err_short}"
 
 
-def check_readf_ext(dir):
+def check_readf_ext(fnames):
     '''DEPRECATED'''
-    fnames = os.listdir(dir)
     if "fq" in fnames[0]:
         ext = "fq"
     elif "fastq" in fnames[0]:
