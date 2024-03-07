@@ -16,7 +16,7 @@ def samtools_read_num(outdir, seqname, flag=""):
 
 
 def bwa_index(fpath):
-    shell(f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 index {fpath}")
+    shell(f"bwa-mem2 index {fpath}")
 
 
 def bam_to_fastq(bam, fastq):

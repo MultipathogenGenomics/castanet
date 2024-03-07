@@ -36,7 +36,7 @@ make
 sudo make install
 cd ..
 
-git clone https://github.com/niemasd/ViralConsensus.git
+git clone --recurse-submodules --remote-submodules https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus
 make
 cd ..

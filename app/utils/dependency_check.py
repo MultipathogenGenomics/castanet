@@ -26,7 +26,7 @@ class Dependencies:
     def check_trimmomatic(self):
         loginfo("Testing Trimmomatic")
         out = shell("java", is_test=True)
-        if not "Usage: java [-options] class" in out:
+        if not "Usage: java" in out:
             stoperr(
                 "Java doesn't seem to be installed. Please check the Castanet readme for installation instructions.")
 
