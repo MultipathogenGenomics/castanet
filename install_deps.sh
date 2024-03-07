@@ -25,7 +25,7 @@ unzip Trimmomatic-0.39.zip
 rm Trimmomatic-0.39.zip
 
 # Install BWA
-conda install bwa-mem2
+conda install -y bwa-mem2
 
 # Install viral consensus tool
 wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj
