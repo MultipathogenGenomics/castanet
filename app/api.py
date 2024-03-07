@@ -30,7 +30,7 @@ from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Pre
 import_test()
 
 description = """
-CASTANET is software for analysis of targeted metagenomics sequencing data, originally by tgolubch (https://github.com/tgolubch) and refactored to Python3 by mayne941 (https://github.com/Mayne941).
+CASTANET is software for analysis of targeted & metagenomic sequencing data, originally by tgolubch (https://github.com/tgolubch) and refactored to Python3 by mayne941 (https://github.com/Mayne941).
 """
 
 tags_metadata = [
