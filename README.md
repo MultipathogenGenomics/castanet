@@ -20,8 +20,8 @@ This implementation is written in Python 3 and has additional convenience featur
 # Castanet workflow
 ```mermaid
 flowchart TD
-    A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
-    B[Filter Reads]-->C[Trim adapters/poor quality reads]
+    A[Remove unwanted reads]-->|Kraken2 (Optional) |B[participant Filter Reads]
+    B[Filter Reads]-->C[Trim adapters/poor quality reads (Optional)]
     C[Trim adapters/poor quality reads]-->|Trimmomatic|D[Mapping]
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
     E[Generate unique read counts]-->|Samtools|F[Analysis]
@@ -42,21 +42,34 @@ We assume the user's system is set up with the following. See attached links for
 
 ## Environment setup
 We strongly recommend creating a new Conda environment for your Castanet install:
+
 ```$ conda create --name castanet python==3.10```
+
 Which can be activated with:
+
 ```$ conda activate castanet```
+
 Before installing your pip libraries:
+
 ```$ pip install -r requirements.txt```
+
 And the following Command Line packages:
+
 ```$ sudo apt update -y```
+
 ```$ sudo apt install -y samtools unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev``
+
 (N.b. if any of the above commands fail, try ```$ sudo apt --fix-broken install```)
-Finally these bioinformatics dependencies:
+
+Then these bioinformatics dependencies:
 ```$ bash install_deps.sh```
 
+Finally, run the dependency check endpoint to ensure that all dependencies have installed correctly (see `Example Worfklow using API', below).
+
 ## Prerequisite files
+Castanet supports a variety of workflows and will require the user to supply their own data, either as a pair of read files in .fq/.fastq[.gz] format, or otherwise a pre-made bam file. Depending on which workflow is triggered, the software works by looking for files inside a user-specified folder ("ExpDir", via the API): if an end-to-end workflow, or individual steps therein, are triggered, Castanet will look for 2x read files in this folder. If you trigger an analysis of a bam file, it will instead look for a single bam file in this folder.
+
 Users may provide the following data to use Castanet:
-1. Paired read sequence files located in their own folder. Castanet infers file names from a supplied folder ("ExpDir") and sequence name ("SeqName"), meaning that all input file names need to be standardised. The trailing portion of each read should end in "_1"/"_2" and the input parameter "SeqName" should reference the file names minus these suffixes. E.g. Read files: "data/mydata_1.fastq.gz", "data/mydata_2.fastq.gz" should be provided, with SeqName specified as "mydata" and ExpDir "data/".
 1. A collection of fasta sequences that comprise the user's probe set, with a naming convention compatible with Castanet (see section "Supported probe formats")
 1. (Optional) A CSV file describing the total number of reads from your original, unedited input files. Columns should include: "sampleid" (i.e. mysample_1...), "pt" to link to clinical data (if present, otherwise leave blank) and "rawreadnum". If not present, Castanet will assume that your input fasta has not been filtered and hence, will infer the max n reads from these.
 1. (Optional) A CSV file containing clinical metadata, which may be joined to output statistics via the "pt" key (see above).
@@ -93,36 +106,41 @@ Your probe panel will be unique to your experiments, hence we have not provided 
 1. Install dependencies (see above)
 1. Start an API server with ```uvicorn app.api:app --port 8000```
 1. Visit API home page in your browser, using address ```http://127.0.0.1:8000/docs```
-1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below (after amending the capitalised fields to fit your input data), trigger the function with "Execute" button. Details of output, including run information and errors, are shown in the terminal that was used to launch the API server. Output will be stored in ./experiments/{ExpName}.
+1. Find the green "check_dependencies" box and click on it to expand. Chick "Try it out" (top right corner of green box), then the blue "Execute" box that appears underneath. This will test that all of the dependencies needed for Castanet to run are installed and functioning as expected.
+1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below, trigger the function with "Execute" button. This triggers an end-to-end run analysing a synthetic dataset that's included in this repository. Output are saved to ./experiments/CastanetTest/.
 
 ```
 {
+  "ExpDir": "./data/eval/",
+  "ExpName": "CastanetTest",
+  "RefStem": "data/eval/ref.fa",
   "SingleEndedReads": false,
+  "DoTrimming": true,
   "TrimMinLen": 36,
   "ConsensusMinD": 10,
   "ConsensusCoverage": 30,
   "ConsensusMapQ": 1,
   "ConsensusCleanFiles": true,
+  "GtFile": "",
+  "GtOrg": "",
+  "DoKrakenPrefilter": false,
   "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
   "ExcludeIds": "9606",
   "RetainIds": "",
   "RetainNames": "",
-  "ExcludeNames": "Homo,Alteromonas,Achromobacter",
+  "ExcludeNames": "Homo",
   "KrakenDbDir": "kraken2_human_db/",
   "KeepDups": true,
   "Clin": "",
   "DepthInf": "",
   "SamplesFile": "",
   "PostFilt": false,
-  "RefStem": "data/PROBE_FASTA.fasta",
   "AdaptP": "data/all_adapters.fa",
-  "ExpName": "MY_EXPERIMENT",
-  "SeqName": "SEQUENCE_NAME",
-  "ExpDir": "./data/FOLDER"
+  "NThreads": "auto"
 }
 ```
 
-N.b. pay attention to your argument type: strings should be encased in double quotes, whereas numbers and booleans (true, false) don't need to be. Any arguments that default to empty ('"ArgName": ""') are optional and may be left blank
+N.b. pay attention to your argument type: strings should be encased in double quotes, whereas numbers and booleans (true, false) don't need to be. Any arguments that default to empty ('"ArgName": ""') are optional and may be left blank. The API will give you error messages in the "response body" box in your web browser, and detailed error messags will be printed to the terminal.
 
 ## Example workflow, using original script functionality
 N.B. some optional parameters from the original scripts are hard-coded. Full and extended functionality is offered in the API.
@@ -130,21 +148,13 @@ N.B. some optional parameters from the original scripts are hard-coded. Full and
 ### Run commands
 1. Install prerequisites
 1. Install dependencies with ```sudo bash install_deps.sh```
-1. Call end-to-end script with ```python3 app/end_to_end_script.py -ExpDir data/ -SeqName mysample -RefStem myrefstem.fasta -PostFilt True -Samples data/samples.csv -Probes data/probes.csv```
-
-# Container setup
-An example dockerfile and build/run scripts are included for guidance only.
-
-1. Install Docker ```https://docs.docker.com/get-docker/```
-1. Build and run container ```bash build.sh && bash run.sh```
-
-Users are encouraged to consult a system admin if they experience issues with building, accessing or deploying containers.
+1. Start the API with ```uvicorn app.api:app --port 8000```
+1. In a new terminal window, call end-to-end script with ```bash ./dev/end_to_end.sh```
 
 # Function descriptions
 ## Input arguments common to multiple functions
-1. Experiment directory [ExpDir]. Folder where data is stored and may be saved.
-1. Experiment name [ExpName]. Name used to prefix final output.
-1. Sequence name [SeqName]. name common to your input sequences, without prefixes, suffixes or file extensions. N.b. we assume your data will have the following format: {ExpDir}{SeqName}_1.fasta.gz, {ExpDir}{SeqName}_2.fasta.gz.
+1. Experiment directory [ExpDir]. Folder where your input files live: Castanet will look for .fastq/.fq or .bam files, depending on which function you've called.
+1. Experiment name [ExpName]. Folder where data is stored and may be saved.
 1. Threads [NThreads]. Number of individual processes to be run concurrently.
 
 ## Preprocess
@@ -269,6 +279,16 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 ```https://github.com/niemasd/ViralConsensus```
 
 # Changelog
+## Version 5, 07/03/24
+1. Additional workflow for analysing pre-mapped bam files
+1. Simplified all workflows by automatic inference of sequence/bam files in input folders
+1. Dependency check endpoint
+1. Expanded exception catching and logging
+1. Updated installer and readme
+1. Added parameterisation for n threads, do trimming, do kraken prefilter
+1. Various bug fixes
+1. Updated dependency installer and various dependency calls to enhance compatibility with Mac M1/M2
+
 ## Version 4, 17/11/23
 1. Support for outputting intermediate files from consensus generation, for downstream analysis
 1. Support for single ended read sets
