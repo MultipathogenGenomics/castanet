@@ -123,9 +123,12 @@ async def read_root() -> dict:
 
 
 @app.post("/check_dependencies/", tags=["Convenience functions"])
-async def check_deps(payload: Dep_check_data) -> dict:
-    clf = Dependencies(jsonable_encoder(payload))
-    return clf.main()
+async def check_deps(payload: Dep_check_data) -> str:
+    try:
+        clf = Dependencies(jsonable_encoder(payload))
+        return clf.main()
+    except Exception as ex:
+        return error_handler_api(ex)
 
 
 @app.post("/batch_eval/", tags=["Dev endpoints"])

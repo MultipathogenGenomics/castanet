@@ -138,9 +138,11 @@ def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
 def error_handler_api(ex):
     import traceback
     import logging
+    import re
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     err = traceback.format_exc()
     if type(ex) == SystemError:
-        err_short = str(ex).encode("ascii", "ignore").decode()
+        err_short = ansi_escape.sub("", str(ex))
     else:
         print(colored(f"Unclassified Castanet error:", 'red'))
         err_short = "Unclassified Castanet error: " + err.split('\n')[-2]

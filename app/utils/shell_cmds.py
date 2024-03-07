@@ -3,7 +3,7 @@ import subprocess as sp
 import sys
 
 
-def shell(args, calling_fn="Misc shell function", ret_output=False):
+def shell(args, calling_fn="Misc shell function", ret_output=False, is_test=False):
     '''Call Bash shell with input string as argument'''
     whitelist = ["mafft"]
     _ = sp.Popen(args, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -13,6 +13,8 @@ def shell(args, calling_fn="Misc shell function", ret_output=False):
             out, err, f"ERROR: Something went wrong with CLI call: {calling_fn}, dumping STDOUT/STDERR to shell.")
     if ret_output:
         return out
+    elif is_test:
+        return str(out+err)
 
 
 def sp_error_handler(out, err, name):

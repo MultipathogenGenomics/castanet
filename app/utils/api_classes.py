@@ -66,7 +66,7 @@ class Data_FilterFilters(BaseModel):
     RetainNames: Union[None, str] = Query("",
                                           description="(OPTIONAL) Retain these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
-    ExcludeNames: Union[None, str] = Query("Homo,Alteromonas,Achromobacter",
+    ExcludeNames: Union[None, str] = Query("Homo",
                                            description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
 
@@ -106,9 +106,10 @@ class Data_ConsensusParameters(BaseModel):
 '''Endpoint objects'''
 
 
-class E2e_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
+class E2e_data(Data_NThreads, Data_AdaptP,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-               Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
+               Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts,
+               Data_RefStem, Data_ExpName, Data_ExpDir):
     pass
 
 
