@@ -20,8 +20,8 @@ This implementation is written in Python 3 and has additional convenience featur
 # Castanet workflow
 ```mermaid
 flowchart TD
-    A[Remove unwanted reads]-->|Kraken2 (Optional) |B[participant Filter Reads]
-    B[Filter Reads]-->C[Trim adapters/poor quality reads (Optional)]
+    A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
+    B[Filter Reads]-->C[Trim adapters/poor quality reads]
     C[Trim adapters/poor quality reads]-->|Trimmomatic|D[Mapping]
     D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
     E[Generate unique read counts]-->|Samtools|F[Analysis]
