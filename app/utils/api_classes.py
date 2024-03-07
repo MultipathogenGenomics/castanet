@@ -15,11 +15,6 @@ class Data_ExpDir(BaseModel):
                                   description="Path to retrieve and store data.")
 
 
-class Data_SeqName(BaseModel):
-    SeqName: str = Query('mysequence',
-                         description="Base filename for your input sequences. Naming convention is mysequence_1, ..._2.")
-
-
 class Data_AdaptP(BaseModel):
     AdaptP: FilePath = Query('data/all_adapters.fa',
                              description='Location of your Trimmomatic adapter sequences - may be in your Trimmomatic path, but a backup is in the data dir.')
@@ -40,6 +35,11 @@ class Data_GenerateCounts(BaseModel):
                                    description="Set to true if using single-ended reads, e.g. if sequencing run ended half-way through.")
 
 
+class Data_NThreads(BaseModel):
+    NThreads: Union[int, str] = Query('auto',
+                                      description="Specify the number of threads for multi-core processing. Options: integer == this many threads; 'auto' == let Castanet choose number of threads; 'hpc' == select when running on a compute cluster (hard codes to 1).")
+
+
 class Data_ExpName(BaseModel):
     ExpName: str = Query('myexperiment',
                          description="Name your experiment/batch")
@@ -47,29 +47,34 @@ class Data_ExpName(BaseModel):
 
 class Data_KrakenDir(BaseModel):
     KrakenDbDir: DirectoryPath = Query('kraken2_human_db/',
-                                       description="Path to Kraken2 database for filtering human/other unwanted species reads.")
+                                       description="Path to Kraken2 database for filtering human/other unwanted species reads. Only used if DoKrakenPrefilter = true")
 
 
 class Data_FilterFilters(BaseModel):
+    DoKrakenPrefilter: bool = Query(True,
+                                    description="If true, run an initial pre-filtering step to label reads with Kraken2 and exclude those belonging to taxonomies indicated in Exclude/Retain IDs/Names arguments. If false, these other fields are ignored.")
+
     LineageFile: Union[None, str] = Query('data/ncbi_lineages_2023-06-15.csv.gz',
-                                          description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa.")
+                                          description="(OPTIONAL) Path to CSV file containing lineages of all NCBI taxa. Only used if DoKrakenPrefilter = true.")
 
     ExcludeIds: Union[None, str] = Query("9606",
-                                         description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Set to 9606 to exclude Human.")
+                                         description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Set to 9606 to exclude Human. Only used if DoKrakenPrefilter = true.")
 
     RetainIds: Union[None, str] = Query("",
-                                        description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces.")
+                                        description="(OPTIONAL) Exclude these NCBI TaxID/s from filter keep reads step. Comma separate without spaces. Only used if DoKrakenPrefilter = true.")
 
     RetainNames: Union[None, str] = Query("",
-                                          description="(OPTIONAL) Retain these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified.")
+                                          description="(OPTIONAL) Retain these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
-    ExcludeNames: Union[None, str] = Query("Homo,Alteromonas,Achromobacter",
-                                           description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified.")
+    ExcludeNames: Union[None, str] = Query("Homo",
+                                           description="(OPTIONAL) Exclude these species names from filter keep reads step. Comma separate without spaces. Will be ignored if no Linneage file specified. Only used if DoKrakenPrefilter = true.")
 
 
 class Data_TrimmomaticParams(BaseModel):
+    DoTrimming: bool = Query(True,
+                             description="If true, use Trimmomatic to remove low quality reads and adapters. Minimum trim length can be set with TrimMinLen argument; if false, this extra argument is ignored.")
     TrimMinLen: int = Query(36,
-                            description="Values < than min trim length will be removed by Trimmomatic tool.")
+                            description="Values < than min trim length will be removed by Trimmomatic tool. Only used if DoTrimming = true")
 
 
 class Data_AnalysisExtras(BaseModel):
@@ -101,62 +106,70 @@ class Data_ConsensusParameters(BaseModel):
 '''Endpoint objects'''
 
 
-class E2e_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class E2e_data(Data_NThreads, Data_AdaptP,
                Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
-               Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
+               Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts,
+               Data_RefStem, Data_ExpName, Data_ExpDir):
     pass
 
 
-class E2e_eval_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class E2e_eval_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                     Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                     Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
-class Preprocess_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_KrakenDir, Data_TrimmomaticParams):
+class Bam_workflow_data(Data_NThreads, Data_PostFilt, Data_AnalysisExtras, Data_ConsensusParameters,
+                        Data_GenerateCounts, Data_RefStem, Data_ExpName, Data_ExpDir):
     pass
 
 
-class Filter_keep_reads_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_FilterFilters, Data_TrimmomaticParams):
+class Preprocess_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_KrakenDir, Data_TrimmomaticParams):
     pass
 
 
-class Trim_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AdaptP, Data_TrimmomaticParams):
+class Filter_keep_reads_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_FilterFilters, Data_TrimmomaticParams):
     pass
 
 
-class Mapping_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_RefStem):
+class Trim_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_TrimmomaticParams):
     pass
 
 
-class Count_map_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_GenerateCounts):
+class Mapping_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_RefStem):
     pass
 
 
-class Analysis_data(Data_ExpDir, Data_SeqName, Data_ExpName, Data_AnalysisExtras, Data_RefStem):
+class Count_map_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_GenerateCounts):
     pass
 
 
-class Post_filter_data(Data_ExpDir, Data_SeqName, Data_ExpName):
+class Analysis_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AnalysisExtras, Data_RefStem):
     pass
 
 
-class Batch_eval_data(Data_BatchName, Data_ExpName, Data_AdaptP, Data_RefStem,
+class Post_filter_data(Data_ExpDir, Data_NThreads, Data_ExpName):
+    pass
+
+
+class Batch_eval_data(Data_BatchName, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                       Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir,
                       Data_FilterFilters, Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
     pass
 
 
-class Consensus_data(Data_ExpName, Data_SeqName, Data_RefStem, Data_ConsensusParameters):
+class Consensus_data(Data_ExpName, Data_NThreads, Data_RefStem, Data_ConsensusParameters):
     pass
 
 
-class Eval_data(Data_ExpName, Data_SeqName, Data_RefStem,
+class Eval_data(Data_ExpName, Data_NThreads, Data_RefStem,
                 Data_ConsensusParameters):
     pass
 
+
 class Dep_check_data(Data_KrakenDir, Data_AdaptP):
     pass
+
 
 class Convert_probe_data(BaseModel):
     InputFolder: str = Query("",

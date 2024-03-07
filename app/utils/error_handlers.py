@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import subprocess as sp
 from collections import deque
+from termcolor import colored
 
 from app.utils.shell_cmds import loginfo, stoperr, read_line
 
@@ -13,14 +14,17 @@ def error_handler_filter_keep_reads(argies):
     '''
     retain_list, exclude_list, argies["o"] = deque(), deque(), []
     '''Check in path, set up output path'''
+    cnt = 1
     for inpath in argies["input_file"]:
         if not os.path.isfile(inpath):
             stoperr(f'Unable to open FastQ file {inpath}.')
-        outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
-            '.gz') else os.path.basename(inpath)
+        # outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
+        #     '.gz') else os.path.basename(inpath) # TODO DEPRECATED
+        # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
-        outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
-        argies["o"].append(outpath)
+        argies["o"].append(
+            f'experiments/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
+        cnt += 1
     loginfo(f'Output files {argies["o"]}')
 
     '''Check input files'''
@@ -28,7 +32,7 @@ def error_handler_filter_keep_reads(argies):
         stoperr('Could not create output paths for all given input files.')
     if not os.path.isfile(argies["kraken"]):
         stoperr(
-            f'Unable to open Kraken file {argies["kraken"]} for input {argies["input_file"]}.')
+            f'Unable to open Kraken file {argies["kraken"]} for input {argies["input_file"]}. Have you run the preprocess command before this one to create the kraken file?')
 
     '''Check lineage file; iterate over linF, get ret/excl IDs from names'''
     if argies["RetainNames"] or argies["ExcludeNames"]:
@@ -64,7 +68,7 @@ def error_handler_filter_keep_reads(argies):
         except:
             stoperr(f'TaxID(s) {argies["RetainIds"]} invalid.')
     if not argies["ExcludeIds"] and not argies["RetainIds"]:
-        stoperr('Nothing to do. Exiting.')
+        stoperr('User opted to use Kraken filtering but no parameters were provided to exclude reads: please check your ExcludeIds and RetainIds arguments or set DoKrakenPreprocess to false.')
 
     return argies["o"], argies["ExcludeIds"], argies["RetainIds"]
 
@@ -106,7 +110,7 @@ def error_handler_analysis(argies) -> pd.DataFrame:
         stoperr(f'Failed to read dataframe from {df} : {e}')
 
     if df.empty:
-        stoperr(f"Your Positions Count file is empty, meaning that Castanet didn't detect any significant hits in your input sample.")
+        stoperr(f"Your Positions Count file is empty, meaning that Castanet didn't detect any significant hits in your input sample. This can sometimes mask an upstream problem, but may also mean that your sample is low quality and/or genuinely has nothing that maps to your mapping reference.")
 
     if argies["DepthInf"] and not os.path.isfile(argies["DepthInf"]):
         stoperr(f'Unable to open precomputed depth file {argies["DepthInf"]}.')
@@ -131,8 +135,23 @@ def error_handler_consensus_ref_corrected(a, tar_name) -> bool:
     return False
 
 
-def check_readf_ext(dir):
-    fnames = os.listdir(dir)
+def error_handler_api(ex):
+    import traceback
+    import logging
+    import re
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    err = traceback.format_exc()
+    if type(ex) == SystemError:
+        err_short = ansi_escape.sub("", str(ex))
+    else:
+        print(colored(f"Unclassified Castanet error:", 'red'))
+        err_short = "Unclassified Castanet error: " + err.split('\n')[-2]
+    logging.error(err)
+    return f"Castanet run failed, please see error message and terminal for more details: {err_short}"
+
+
+def check_readf_ext(fnames):
+    '''DEPRECATED'''
     if "fq" in fnames[0]:
         ext = "fq"
     elif "fastq" in fnames[0]:

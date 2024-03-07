@@ -58,7 +58,7 @@ class Parse_bam_positions:
         if match or improper_match:
             '''Properly paired and match is of decent mapped length OR
             Improperly paired BUT same gene AND match is of decent mapped length (via CIGAR string lookup) AND RNAME ref organism is same to RNEXT ref org'''
-            print(f'{ref},{pos},{tlen},{self.argies.SeqName}')
+            print(f'{ref},{pos},{tlen},{self.argies.ExpName}')
             self.build_target_dbs(ref, seq, id)
         else:
             return
@@ -106,7 +106,7 @@ class Parse_bam_positions:
                 raise SystemExit(
                     f"Couldn't find reads to drop file: {self.argies.FilterFile}. Did your run generate one?")
 
-        with open(f"experiments/{self.argies.ExpName}/{self.argies.SeqName}_bamview.txt") as f:
+        with open(f"experiments/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
                     self.parse_bam_position(l)
