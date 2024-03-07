@@ -22,9 +22,12 @@ from app.src.generate_counts import run_counts
 from app.src.consensus import Consensus
 from app.src.analysis import Analysis
 from app.src.post_filter import run_post_filter
+from app.utils.test_imports import import_test
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data, Dep_check_data,
                                    Post_filter_data, Consensus_data, Eval_data, Convert_probe_data, Bam_workflow_data)
+
+import_test()
 
 description = """
 CASTANET is software for analysis of targeted metagenomics sequencing data, originally by tgolubch (https://github.com/tgolubch) and refactored to Python3 by mayne941 (https://github.com/Mayne941).
