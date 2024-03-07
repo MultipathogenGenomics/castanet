@@ -32,7 +32,7 @@ def error_handler_filter_keep_reads(argies):
         stoperr('Could not create output paths for all given input files.')
     if not os.path.isfile(argies["kraken"]):
         stoperr(
-            f'Unable to open Kraken file {argies["kraken"]} for input {argies["input_file"]}.')
+            f'Unable to open Kraken file {argies["kraken"]} for input {argies["input_file"]}. Have you run the preprocess command before this one to create the kraken file?')
 
     '''Check lineage file; iterate over linF, get ret/excl IDs from names'''
     if argies["RetainNames"] or argies["ExcludeNames"]:

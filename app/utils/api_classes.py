@@ -119,6 +119,11 @@ class E2e_eval_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_
     pass
 
 
+class Bam_workflow_data(Data_NThreads, Data_PostFilt, Data_AnalysisExtras, Data_ConsensusParameters,
+                        Data_GenerateCounts, Data_RefStem, Data_ExpName, Data_ExpDir):
+    pass
+
+
 class Preprocess_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_KrakenDir, Data_TrimmomaticParams):
     pass
 

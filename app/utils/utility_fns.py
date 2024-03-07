@@ -79,3 +79,25 @@ def trim_long_fpaths(key):
         return key[0:100]
     else:
         return key
+
+
+def enumerate_read_files(exp_dir, batch_name=None):
+    if not exp_dir[-1] == "/":
+        exp_dir = f"{exp_dir}/"
+    accepted_formats = [".fq", ".fastq"]
+    if batch_name:
+        exp_dir = f"{batch_name}/{exp_dir}"
+    f_full = [f"{exp_dir}/{i}" for i in os.listdir(
+        exp_dir) if any(subst in i for subst in accepted_formats)]
+    assert len(
+        f_full) == 2, f"ERROR: Please ensure there are only 2 read files in your experiment directory (ExpDir). I detected these .fq/.fastq[.gz] files: {f_full if not len(f_full) == 0 else 'None'}"
+    return f_full
+
+
+def enumerate_bam_files(exp_dir):
+    accepted_formats = [".bam"]
+    f_full = [f"{exp_dir}/{i}" for i in os.listdir(
+        exp_dir) if any(subst in i for subst in accepted_formats)]
+    assert len(
+        f_full) == 1, f"ERROR: Please ensure there is a single .bam file in your experiment directory (ExpDir). I detected these .bam files: {f_full if not len(f_full) == 0 else 'None'}"
+    return f_full[0]

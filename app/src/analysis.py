@@ -10,13 +10,17 @@ from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import samtools_read_num
-from app.utils.utility_fns import trim_long_fpaths, read_fa
+from app.utils.utility_fns import trim_long_fpaths, read_fa, enumerate_bam_files
 
 
 class Analysis:
     def __init__(self, argies, api_entry=True) -> None:
         self.a = argies
         self.output_dir = f"experiments/{self.a['ExpName']}/"
+        if not os.path.exists(f"experiments/{self.a['ExpName']}/{self.a['ExpName']}.bam"):
+            '''If entry from analyse endpoint, cp bam file from input folder to experiment folder'''
+            shell(
+                f"cp {enumerate_bam_files(self.a['ExpDir'])} experiments/{self.a['ExpName']}/{self.a['ExpName']}.bam")
         if api_entry:
             self.a["input_file"] = f"{self.output_dir}/{self.a['ExpName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
@@ -401,7 +405,8 @@ class Analysis:
                     f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
         else:
             loginfo(f"Inferring raw read number from bam file")
-            read_num = samtools_read_num(self.output_dir, self.a["ExpName"])
+            read_num = samtools_read_num(
+                self.output_dir, self.a["ExpName"])
             samples = pd.DataFrame(
                 [{"sampleid": self.a["ExpName"], "pt": "", "rawreadnum": read_num}])
 

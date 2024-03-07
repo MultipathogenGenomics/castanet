@@ -1,4 +1,5 @@
 from app.utils.shell_cmds import shell
+from app.utils.utility_fns import enumerate_read_files
 from app.utils.system_messages import end_sec_print
 from app.utils.shell_cmds import stoperr
 import os
@@ -6,6 +7,7 @@ import os
 
 def run_kraken(p):
     '''Call Kraken2 to remove unwanted reads'''
+    p["SeqNames"] = enumerate_read_files(p["ExpDir"])
     out_fnames = [f'experiments/{p["ExpName"]}/{p["ExpName"]}.kraken',
                   f'experiments/{p["ExpName"]}/kraken_report.tsv']
     for ofn in out_fnames:
