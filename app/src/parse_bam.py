@@ -42,14 +42,18 @@ class Parse_bam_positions:
         id, ref, pos, ref2, tlen, cigar, seq = fields[0], fields[2], fields[3], fields[6], int(
             fields[8]), fields[5], fields[9]
 
+        ref_name_match = True if get_gene_orgid(
+            ref2)[0] == "=" else get_gene_orgid(ref) == get_gene_orgid(ref2)
         match = tlen >= self.min_match_length
         if not self.argies.SingleEnded == "True":
             improper_match = (tlen == 0) and (self.getmatchsize(
-                cigar) >= self.min_match_length) and (get_gene_orgid(ref) == get_gene_orgid(ref2))
+                cigar) >= self.min_match_length) and ref_name_match
         else:
             '''Experimental, for use with single ended sets (e.g. when Sequencer explodes mid-run)'''
             improper_match = (tlen == 0) and (self.getmatchsize(
                 cigar) >= self.min_match_length)
+
+        if improper_match and tlen == 0:
             try:
                 tlen = self.getmatchsize(cigar)
             except:
@@ -80,7 +84,7 @@ class Parse_bam_positions:
                 return
 
     def save_hit_dbs(self):
-        grp_aln_f = f"experiments/{self.argies.ExpName}/grouped_reads/"
+        grp_aln_f = f"{self.argies.ExpRoot}/{self.argies.ExpName}/grouped_reads/"
         make_dir(f"mkdir {grp_aln_f}")
 
         for key in self.reads_by_hit.keys():
@@ -106,7 +110,7 @@ class Parse_bam_positions:
                 raise SystemExit(
                     f"Couldn't find reads to drop file: {self.argies.FilterFile}. Did your run generate one?")
 
-        with open(f"experiments/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
+        with open(f"{self.argies.ExpRoot}/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
                     self.parse_bam_position(l)

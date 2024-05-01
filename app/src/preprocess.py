@@ -8,8 +8,8 @@ import os
 def run_kraken(p):
     '''Call Kraken2 to remove unwanted reads'''
     p["SeqNames"] = enumerate_read_files(p["ExpDir"])
-    out_fnames = [f'experiments/{p["ExpName"]}/{p["ExpName"]}.kraken',
-                  f'experiments/{p["ExpName"]}/kraken_report.tsv']
+    out_fnames = [f'{p["ExpRoot"]}/{p["ExpName"]}/{p["ExpName"]}.kraken',
+                  f'{p["ExpRoot"]}/{p["ExpName"]}/kraken_report.tsv']
     for ofn in out_fnames:
         '''Kill existing kraken files if present'''
         if os.path.exists(ofn):

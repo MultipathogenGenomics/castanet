@@ -43,6 +43,8 @@ class Data_NThreads(BaseModel):
 class Data_ExpName(BaseModel):
     ExpName: str = Query('myexperiment',
                          description="Name your experiment/batch")
+    ExpRoot: str = Query('./experiments',
+                         description="Name the root folder for your experiments. Default is to make a sub folder for each experiment run, in the ./experiments folder of your Castanet repository.")
 
 
 class Data_KrakenDir(BaseModel):
@@ -113,6 +115,13 @@ class E2e_data(Data_NThreads, Data_AdaptP,
     pass
 
 
+class Amp_e2e_data(Data_NThreads, Data_AdaptP,
+                   Data_KrakenDir, Data_FilterFilters,
+                   Data_TrimmomaticParams, Data_GenerateCounts,
+                   Data_RefStem, Data_ExpName, Data_ExpDir):
+    pass
+
+
 class E2e_eval_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AdaptP, Data_RefStem,
                     Data_PostFilt, Data_AnalysisExtras, Data_KrakenDir, Data_FilterFilters,
                     Data_ConsensusParameters, Data_TrimmomaticParams, Data_GenerateCounts):
@@ -149,6 +158,10 @@ class Analysis_data(Data_ExpDir, Data_ExpName, Data_NThreads, Data_AnalysisExtra
 
 
 class Post_filter_data(Data_ExpDir, Data_NThreads, Data_ExpName):
+    pass
+
+
+class Amplicon_data(Data_ExpDir, Data_NThreads, Data_ExpName):
     pass
 
 

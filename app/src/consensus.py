@@ -23,12 +23,12 @@ class Consensus:
 
     def __init__(self, payload) -> None:
         self.a = payload
-        self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
+        self.a["folder_stem"] = f"{self.a['ExpRoot']}/{self.a['ExpName']}/"
         self.target_consensuses = {}
         self.insufficient_coverage_orgs = []
         self.refs = read_fa(self.a["RefStem"])
         self.probe_names = pd.read_csv(
-            f"experiments/{self.a['ExpName']}/probe_aggregation.csv")
+            f"{self.a['ExpRoot']}/{self.a['ExpName']}/probe_aggregation.csv")
         self.fnames = get_consensus_fnames(self.a)
         self.eval_stats = {}
         make_dir(f"mkdir {self.a['folder_stem']}consensus_data/")
@@ -163,7 +163,7 @@ class Consensus:
               "Mafft align consensus with ref seqs (CONSENSUS.PY)")
         try:
             call_graph(self.a["ExpName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-                       f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", is_eval=False)
+                       f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", self.a["ExpRoot"], is_eval=False)
         except FileNotFoundError:
             raise SystemError(
                 "Castanet couldn't construct a consensus alignment graph")

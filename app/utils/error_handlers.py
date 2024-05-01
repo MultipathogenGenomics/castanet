@@ -23,7 +23,7 @@ def error_handler_filter_keep_reads(argies):
         # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
         argies["o"].append(
-            f'experiments/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
+            f'{argies["ExpRoot"]}/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
         cnt += 1
     loginfo(f'Output files {argies["o"]}')
 

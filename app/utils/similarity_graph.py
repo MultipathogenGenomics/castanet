@@ -13,9 +13,9 @@ class SimilarityGraph:
     doi: 10.1186/s12859-018-2367-z
     https://www.biotite-python.org/examples/gallery/sequence/pi3k_alignment.html#sphx-glr-examples-gallery-sequence-pi3k-alignment-py'''
 
-    def __init__(self, ExpName, RefOrg, in_fname, out_fname, is_eval=True) -> None:
+    def __init__(self, ExpName, RefOrg, in_fname, out_fname, ExpRoot, is_eval=True) -> None:
         self.a = {
-            "folder_stem": f"experiments/{ExpName}/",
+            "folder_stem": f"{ExpRoot}/{ExpName}/",
             "ref_org": f"{RefOrg}",
             "in_fname": in_fname,
             "out_fname": out_fname
@@ -106,14 +106,15 @@ class SimilarityGraph:
         self.draw_figure(seq_dict, similarities)
 
 
-def call_graph(seq_name, org, aln_file, out_fname, is_eval=True) -> None:
+def call_graph(seq_name, org, aln_file, out_fname, ExpRoot, is_eval=True) -> None:
     '''Call average normalised similarity graph'''
     cls = SimilarityGraph(
         seq_name,
         org,
         aln_file,
         out_fname,
-        is_eval
+        is_eval,
+        ExpRoot
     )
     cls.main()
 
