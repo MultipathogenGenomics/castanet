@@ -79,27 +79,6 @@ class Amplicons:
                 self.results[row[1]] = []
             self.results[row[1]].append([f"{row[1]}_{row[0]}", final_seq])
 
-    def save(self):
-        '''Save DEDUPLICATED reads, separately grouped by target'''
-        for ref in self.results.keys():
-            with open(f"{self.amp_folder}/{ref}.fasta", "w") as f:
-                seen = set()
-                for seq in self.results[ref]:
-                    if not seq[1] in seen:
-                        f.write(f">{self.a['ExpName']}_{seq[0]}\n{seq[1]}\n")
-                    seen.add(seq[1])
-            if self.do_aln_graphs:
-                loginfo(
-                    f"Generating alignment and graph for ref {ref}. This might take a few moments.")
-                shell(
-                    f"mafft --auto --thread {self.a['NThreads']} {self.amp_folder}/{ref}.fasta > {self.amp_folder}/{ref}.aln")
-                # RM <TODO  add lib to requirements, swap CLI to API
-                out = shell(
-                    f"pymsaviz -i {self.amp_folder}/{ref}.aln -o {self.amp_folder}/{ref}.png --color_scheme Identity --show_consensus --show_grid", is_test=True)
-                if "ValueError" in out:
-                    logerr(
-                        f"I couldn't produce an alignment plot for ref {ref}, this usually happens if you have so many unique amplicons to align that the plot would be insanely huge.")
-
     def stats(self, read_stats):
         '''Save CSV with details of all and unique reads'''
         dedupe_stats = {}
@@ -118,6 +97,28 @@ class Amplicons:
         df = pd.DataFrame.from_dict(all_stats).T
         df = df.rename(columns={0: "total_reads", 1: "dedup_reads"})
         df.to_csv(f"{self.amp_folder}/read_statistics.csv")
+
+    def save(self):
+        '''Save DEDUPLICATED reads, separately grouped by target'''
+        for ref in self.results.keys():
+            with open(f"{self.amp_folder}/{ref}.fasta", "w") as f:
+                seen = set()
+                for idx, seq in enumerate(self.results[ref]):
+                    if not seq[1] in seen:
+                        f.write(
+                            f">{self.a['ExpName']}_{idx} {seq[0]}\n{seq[1]}\n")
+                    seen.add(seq[1])
+            if self.do_aln_graphs:
+                loginfo(
+                    f"Generating alignment and graph for ref {ref}. This might take a few moments.")
+                shell(
+                    f"mafft --auto --thread {self.a['NThreads']} {self.amp_folder}/{ref}.fasta > {self.amp_folder}/{ref}.aln")
+                # RM <TODO  add lib to requirements, swap CLI to API
+                out = shell(
+                    f"pymsaviz -i {self.amp_folder}/{ref}.aln -o {self.amp_folder}/{ref}.png --color_scheme Identity --show_consensus --show_grid", is_test=True)
+                if "ValueError" in out:
+                    logerr(
+                        f"I couldn't produce an alignment plot for ref {ref}, this usually happens if you have so many unique amplicons to align that the plot would be insanely huge.")
 
     def clean(self):
         '''Delete TSV file when done'''
