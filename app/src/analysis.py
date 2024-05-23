@@ -16,11 +16,11 @@ from app.utils.utility_fns import trim_long_fpaths, read_fa, enumerate_bam_files
 class Analysis:
     def __init__(self, argies, api_entry=True) -> None:
         self.a = argies
-        self.output_dir = f"experiments/{self.a['ExpName']}/"
-        if not os.path.exists(f"experiments/{self.a['ExpName']}/{self.a['ExpName']}.bam"):
+        self.output_dir = f"{self.a['ExpRoot']}/{self.a['ExpName']}/"
+        if not os.path.exists(f"{self.a['ExpRoot']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"):
             '''If entry from analyse endpoint, cp bam file from input folder to experiment folder'''
             shell(
-                f"cp {enumerate_bam_files(self.a['ExpDir'])} experiments/{self.a['ExpName']}/{self.a['ExpName']}.bam")
+                f"cp {enumerate_bam_files(self.a['ExpDir'])} {self.a['ExpRoot']}/{self.a['ExpName']}/{self.a['ExpName']}.bam")
         if api_entry:
             self.a["input_file"] = f"{self.output_dir}/{self.a['ExpName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
@@ -331,7 +331,7 @@ class Analysis:
                 rot = depth.groupby('sampleid').n_reads_all.sum().reset_index()
             except:
                 stoperr(
-                    f'ERROR: Depth dataframe seems to be empty. Please check trimming and mapping steps completed successfully.')
+                    f'ERROR: Depth dataframe seems to be empty. This usually happens when the naming conventions in your mapping reference file can\'t be resolved by Castanet: please see readme for details of correct formatting.')
 
             rot.rename(
                 columns={'n_reads_all': 'reads_on_target'}, inplace=True)

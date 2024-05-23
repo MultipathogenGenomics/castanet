@@ -9,9 +9,9 @@ def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'):
     p["ExpDir"] = f"{p['ExpDir']}/"
     CLEAN_UP = True
     files = {
-        "in_files": [f"experiments/{p['ExpName']}/{p['ExpName']}_1_filt.fastq", f"experiments/{p['ExpName']}/{p['ExpName']}_2_filt.fastq"],
-        "clean_files": [f"experiments/{p['ExpName']}/{p['ExpName']}_1_clean.fastq", f"experiments/{p['ExpName']}/{p['ExpName']}_2_clean.fastq"],
-        "trim_files": [f"experiments/{p['ExpName']}/{p['ExpName']}_1_trimmings.fq", f"experiments/{p['ExpName']}/{p['ExpName']}_2_trimmings.fq"]
+        "in_files": [f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_1_filt.fastq", f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_2_filt.fastq"],
+        "clean_files": [f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_1_clean.fastq", f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_2_clean.fastq"],
+        "trim_files": [f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_1_trimmings.fq", f"{p['ExpRoot']}/{p['ExpName']}/{p['ExpName']}_2_trimmings.fq"]
     }
     if not os.path.exists(files['in_files'][0]):
         '''If default filtered files not available, find input fastqs'''

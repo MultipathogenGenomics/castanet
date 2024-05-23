@@ -3,16 +3,17 @@ import pandas as pd
 from app.utils.get_genbank import DownloadGenBankFile
 
 
-def make_exp_dir(ExpName):
+def make_exp_dir(ExpNameAndRoot):
     '''Checks if dir exists; creates if not'''
-    if not os.path.exists(f"experiments/{ExpName}"):
-        os.makedirs(f"experiments/{ExpName}")
+    if not os.path.exists(ExpNameAndRoot):
+        os.makedirs(ExpNameAndRoot)
 
 
 def get_gene_orgid(target_id):
     '''Find gene and orgid at specific ref; return (gene, orgid).'''
     parts = target_id.split('_')
-    return (parts[0], parts[-1] if parts[0].startswith('BACT') else parts[0])
+    orgid = parts[-1] if parts[0].startswith('BACT') else parts[0]
+    return (parts[0], orgid)
 
 
 def read_fa(fpath):

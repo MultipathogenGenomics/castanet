@@ -16,7 +16,7 @@ class Evaluate:
         self.a = payload
         if not "StartTime" in self.a.keys():
             self.a["StartTime"] = time.time()
-        self.a["folder_stem"] = f"experiments/{self.a['ExpName']}/"
+        self.a["folder_stem"] = f"{self.a['ExpRoot']}/{self.a['ExpName']}/"
         self.aln_fname = f"{self.a['folder_stem']}evaluation/{self.a['GtOrg']}_consensuses.aln"
         self.seq_names = [f">{self.a['GtOrg']}_GenBank_seq", f">{self.a['GtOrg']}_flattened_consensus",
                           f">{self.a['GtOrg']}_remapped_consensus", f">{self.a['GtOrg']}_gold_standard_consensus"]
@@ -35,16 +35,16 @@ class Evaluate:
             '''If no GT viral sequence, remove empty entry from aln'''
             ref_seq_present = False
         all_seqs.append(  # [1] Un-remapped flattened
-            *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_sequence.fasta"))
+            *read_fa(f"{self.a['ExpRoot']}/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_sequence.fasta"))
         all_seqs.append(  # [2] Remapped
-            *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_remapped_consensus_sequence.fasta"))
+            *read_fa(f"{self.a['ExpRoot']}/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_remapped_consensus_sequence.fasta"))
         all_seqs.append(  # [3] Ground truth
-            *read_fa(f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_ref_adjusted_consensus.fasta"))
+            *read_fa(f"{self.a['ExpRoot']}/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_ref_adjusted_consensus.fasta"))
 
         if not ref_seq_present:
             '''Remove reference and ref-adjusted seqs if GT not present'''
-            del(all_seqs[-1])
-            del(all_seqs[0])
+            del (all_seqs[-1])
+            del (all_seqs[0])
 
         '''Generate additional eval stats from raw seqs'''
         self.additional_stats["gt_len"] = len(all_seqs[0][1])
@@ -150,7 +150,7 @@ class Evaluate:
 
             '''Call graph on contig consensuses'''
             call_graph(self.a['SeqName'], self.a['GtOrg'],
-                       f"experiments/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
+                       f"{self.a['ExpRoot']}/{self.a['ExpName']}/consensus_data/{self.a['GtOrg']}/{self.a['GtOrg']}_consensus_alignment.aln", "contig_vs_ref_consensus_alignments")
 
             '''Do stats'''
             if ref_seq_present:
