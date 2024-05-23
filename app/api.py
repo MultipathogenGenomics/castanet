@@ -237,7 +237,6 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
 
 
 @timing
-# RM < TODO Do we want an option to start with a bam?
 def run_amp_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
     make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
@@ -248,11 +247,6 @@ def run_amp_end_to_end(payload, start_with_bam=False) -> str:
         run_trim(payload)
         run_map(payload)
     run_amplicons(payload)
-    # run_counts(payload) # RM TODO < Do we want to run counts?
-    # run_analysis(payload)
-    # if payload["PostFilt"]:
-    #     run_post_filter(payload)
-    # do_consensus(payload)
     return "Task complete. See terminal output for details."
 
 
