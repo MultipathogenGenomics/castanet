@@ -130,7 +130,7 @@ async def batch(payload: Batch_eval_data) -> str:
         try:
             # exp_name = SeqNames[0].split("/")[2] # RM TODO MAKE DYNAMIC FOR LENGTH OF BATCH NAME!
             # RM TODO TEST FOR D DRIVE <<<<<<<<<<<<<<<<<
-            exp_name = SeqNames[0].split("/")[5]
+            exp_name = SeqNames[0].split("/")[-1]  # RM <<< TODO FIX??
             payload["SeqNames"] = SeqNames
             payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
             payload["ExpName"] = exp_name

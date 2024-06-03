@@ -33,6 +33,8 @@ class Data_PostFilt(BaseModel):
 class Data_GenerateCounts(BaseModel):
     SingleEndedReads: bool = Query(False,
                                    description="Set to true if using single-ended reads, e.g. if sequencing run ended half-way through.")
+    MatchLength: int = Query(40,
+                             description="Minimum length of signed template length (i.e. length of segment mapped to the specific reference/insert size) in bam file for Castanet to consider a proper match. Recommended not to amend unless user is confident they understand this setting.")
 
 
 class Data_NThreads(BaseModel):
