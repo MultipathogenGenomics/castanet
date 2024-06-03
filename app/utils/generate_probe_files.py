@@ -12,10 +12,16 @@ class ProbeFileGen:
 
     def __init__(self, a) -> None:
         self.fstem = a["OutFolder"]
+        if not os.path.exists(self.fstem):
+            os.mkdir(self.fstem)
         self.in_stem = a['InputFolder']
-        self.out_fname = f"{self.fstem}{a['OutFileName']}.fasta"
-        self.plen_fname = f"{self.fstem}{a['OutFileName']}.csv"
-        self.files = os.listdir(self.in_stem)
+        self.out_fname = f"{self.fstem}/{a['OutFileName'].replace('.fasta','')}.fasta"
+        if os.path.exists(self.out_fname):
+            os.remove(self.out_fname)
+        self.plen_fname = f"{self.fstem}/{a['OutFileName'].replace('.fasta','')}.csv"
+        self.fexts = ["fasta", "fst"]
+        self.files = [i for i in os.listdir(self.in_stem) if any(
+            ss in i.split(".")[-1] for ss in self.fexts)]
         self.all_seqs = []
         self.master_seq_counter = 0
         self.stop_words = [[".mafft_consensus", ""], ["mafft", ""], ["consensus", ""], ['"', ""], ["E.coli", "Escherichia-coli"],
@@ -28,7 +34,7 @@ class ProbeFileGen:
 
     def header_cleaner(self, header) -> str:
         '''Remove stop words, re-organise headers with rMLST gene first with primary org'''
-
+        # original = header
         for i in self.stop_words:
             '''Stop word removal'''
             header = header.replace(i[0], i[1])
@@ -46,7 +52,9 @@ class ProbeFileGen:
                     r'[0-9]', '', species_match[0]).replace('_', '')
                 if len([i for i in leading_string.split('-') if not i == '']) == 1:
                     leading_string = f'{leading_string.replace("_","")}GenericStrain'
-                header = f">{leading_string.replace('-','_')}_{header.replace('>', '')}"
+                header = f">{leading_string}_{header.replace('>', '')}"
+                # header = f">{leading_string.replace('-','_')}_{header.replace('>', '')}"
+
             else:
                 raise ValueError(f"I COULDN'T PROCESS HEADER: {header}")
 
@@ -62,6 +70,7 @@ class ProbeFileGen:
         while header[-1] == "_":
             '''Fix random amount of trailing _'s'''
             header = header[:-1]
+
         return header.lower().replace("--", "-").replace("|", "-")
 
     def qc(self) -> None:
@@ -96,7 +105,6 @@ class ProbeFileGen:
             seqs = []
             with open(f"{self.in_stem}{file}", "r") as f:
                 [seqs.append(i.replace("\n", "")) for i in f]
-
             is_first_code_block = False
             current_seq_block, current_header = "", ""
             clean_seqs = []

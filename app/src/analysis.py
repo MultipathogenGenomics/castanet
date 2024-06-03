@@ -17,6 +17,8 @@ class Analysis:
     def __init__(self, argies, api_entry=True) -> None:
         self.a = argies
         self.output_dir = f"{self.a['ExpRoot']}/{self.a['ExpName']}/"
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
         if not os.path.exists(f"{self.a['ExpRoot']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"):
             '''If entry from analyse endpoint, cp bam file from input folder to experiment folder'''
             shell(
@@ -109,23 +111,29 @@ class Analysis:
 
         def _pat_search(s):
             '''Private function to return empty string instead of error when pattern is not matched.'''
-            res = probe_regexes[0].findall(s)
-            if not res:
-                res = (probe_regexes[1].findall(s),)
-                if not res[0]:
-                    has_cluster = re.search(r'_cluster_[0-9]+', s)
-                    if has_cluster:
-                        pat = has_cluster[0]
-                        s = f"{s.replace(pat, '')}"  # {pat.replace('_','')}"
+            try:
+                res = probe_regexes[0].findall(s)
+                if not res:
+                    res = (probe_regexes[1].findall(s),)
+                    if not res[0]:
+                        has_cluster = re.search(r'_cluster_[0-9]+', s)
+                        if has_cluster:
+                            pat = has_cluster[0]
+                            # {pat.replace('_','')}"
+                            s = f"{s.replace(pat, '')}"
 
-                    res = (probe_regexes[2].findall(s),)
+                        res = (probe_regexes[2].findall(s),)
 
-            if not res:
-                return ''
-            name = '_'.join(res[0])
-            if name[-1] == "_":
-                # Fix for old probe set with random trailing _'s
-                name = name[:-1]
+                if not res:
+                    return ''
+                name = '_'.join(res[0])
+
+                if name[-1] == "_":
+                    # Fix for old probe set with random trailing _'s
+                    name = name[:-1]
+            except:
+                logerr(f"Castanet couldn't parse one or more of your probe names. Please ensure you've converted it to Castanet format with the /convert_mapping_reference/ endpoint and that input format was consistent with the format expected (see documentation).")
+                return s
             return name
 
         pdf.loc[pdf.genename.str.startswith('bact'), 'probetype'] = pdf.loc[pdf.genename.str.startswith(

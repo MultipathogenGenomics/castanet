@@ -128,8 +128,7 @@ async def batch(payload: Batch_eval_data) -> str:
 
     for SeqNames in SeqNamesList:
         try:
-            exp_name = SeqNames[0].split("/")[2]
-            # exp_name = SeqNames[0].split("/")[6] # RM TODO TEST FOR D DRIVE <<<<<<<<<<<<<<<<<
+            exp_name = SeqNames[0].split("/")[-3]
             payload["SeqNames"] = SeqNames
             payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
             payload["ExpName"] = exp_name
@@ -142,10 +141,10 @@ async def batch(payload: Batch_eval_data) -> str:
             errs.append(exp_name)
             end_sec_print(
                 f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
+    msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
+    print(
+        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
     if len(errs) < 1:
-        msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
-        print(
-            f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
         return "Batch process task complete. See terminal output for details."
     else:
         return "Batch process task completed with errors. See terminal output for details."
