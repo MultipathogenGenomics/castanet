@@ -105,7 +105,9 @@ def error_handler_analysis(argies) -> pd.DataFrame:
     '''Open data frame'''
     try:
         df = pd.read_csv(argies["input_file"], compression=('gzip' if argies["input_file"].endswith('.gz') else None), header=None,
-                         names=['n', 'target_id', 'startpos', 'maplen', 'sampleid'])
+                         names=['n', 'target_id', 'startpos',
+                                'maplen', 'sampleid'],
+                         on_bad_lines="skip")
     except (IOError, TypeError, pd.errors.ParserError) as e:
         stoperr(f'Failed to read dataframe from {df} : {e}')
 
