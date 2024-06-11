@@ -28,13 +28,7 @@ rm Trimmomatic-0.39.zip
 conda install -y bwa-mem2
 
 # Install viral consensus tool
-wget -qO- "https://github.com/samtools/htslib/releases/download/1.18/htslib-1.18.tar.bz2" | tar -xj
-cd htslib-*
-autoreconf -i
-./configure
-make
-sudo make install
-cd ..
+conda install -y viral_consensus
 
 git clone https://github.com/niemasd/ViralConsensus.git
 cd ViralConsensus

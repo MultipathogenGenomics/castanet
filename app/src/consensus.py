@@ -265,7 +265,7 @@ class Consensus:
             f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
               f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem -t {self.a['NThreads']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
-              f"./ViralConsensus/viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+              f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
 
         self.fix_terminal_gaps(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv",
                                f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
@@ -297,7 +297,7 @@ class Consensus:
 
         '''Run alignment and flatten consensus'''
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam | "
-              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - -t {self.a['NThreads']} | ./ViralConsensus/viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --out_pos_counts {outcounts_fname}")
+              f"./bwa-mem2-2.2.1_x64-linux/bwa-mem2 mem {self.fnames['temp_ref_seq']} - -t {self.a['NThreads']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --out_pos_counts {outcounts_fname}")
         self.fix_terminal_gaps(outcounts_fname, ref_adj_cons_fname)
 
     def fix_terminal_gaps(self, in_fname, out_fname) -> None:
