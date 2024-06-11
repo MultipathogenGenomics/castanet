@@ -29,8 +29,3 @@ conda install -y bwa-mem2
 
 # Install viral consensus tool
 conda install -y viral_consensus
-
-git clone --recurse-submodules --remote-submodules https://github.com/niemasd/ViralConsensus.git
-cd ViralConsensus
-make
-cd ..
