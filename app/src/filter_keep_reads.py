@@ -20,7 +20,7 @@ class FilterKeepReads:
         '''Convert API arguments to format of argparser'''
         self.a = argies
         self.a["input_file"] = enumerate_read_files(argies["ExpDir"])
-        self.a["kraken"] = f"{argies['ExpRoot']}/{argies['ExpName']}/{argies['ExpName']}.kraken"
+        self.a["kraken"] = f"{argies['SaveDir']}/{argies['ExpName']}/{argies['ExpName']}.kraken"
         '''Run error handler, build output fnames, extend retain/exclude IDs from names'''
         if self.a["DoKrakenPrefilter"]:
             self.a["o"], self.a["ExcludeIds"], self.a["RetainIds"] = error_handler_filter_keep_reads(
@@ -81,7 +81,7 @@ class FilterKeepReads:
             '''If not doing kraken filter, just copy and decompress the files'''
             self.reads_to_exclude = self.reads_to_keep = ()
             self.a['o'] = [
-                f'{self.a["ExpRoot"]}/{self.a["ExpName"]}/{self.a["ExpName"]}_{i}_filt.fastq' for i in range(1, 3)]
+                f'{self.a["SaveDir"]}/{self.a["ExpName"]}/{self.a["ExpName"]}_{i}_filt.fastq' for i in range(1, 3)]
 
         '''Iterate over input file, filter reads by excl and retain rules, save output'''
         for (inpath, outpath) in zip(self.a["input_file"], self.a["o"]):
@@ -90,7 +90,7 @@ class FilterKeepReads:
             loginfo(f'Wrote {num_reads} reads to {outpath}.')
 
         shell(
-            f"rm {self.a['ExpRoot']}/{self.a['ExpName']}/{self.a['ExpName']}.kraken")
+            f"rm {self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.kraken")
         end_sec_print("INFO: Filter reads complete.")
 
 

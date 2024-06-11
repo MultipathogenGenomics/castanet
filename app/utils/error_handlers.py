@@ -23,7 +23,7 @@ def error_handler_filter_keep_reads(argies):
         # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
         argies["o"].append(
-            f'{argies["ExpRoot"]}/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
+            f'{argies["SaveDir"]}/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
         cnt += 1
     loginfo(f'Output files {argies["o"]}')
 
@@ -163,3 +163,9 @@ def check_readf_ext(fnames):
     if "gz" in fnames[0]:
         ext += ".gz"
     return ext
+
+
+def error_handler_kraken(out):
+    if "segmentation fault" in out.lower():
+        stoperr(f"Kraken2 exited with error: {out}."
+                f"Try updating Kraken2 ($ conda update kraken2). You can also try disabling Kraken2 in Castanet with the 'DoKrakenPrefilter' parameter.")

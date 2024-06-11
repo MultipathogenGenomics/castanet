@@ -20,8 +20,8 @@ class Amplicons:
         self.min_amp_len = 40  # RM < TODO Parameterise
         self.do_aln_graphs = False  # RM < TODO Parameterise
         self.results = {}
-        self.bam_fname = f"{self.a['ExpRoot']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"
-        self.amp_folder = f"{self.a['ExpRoot']}/{self.a['ExpName']}/amplicon_data/"
+        self.bam_fname = f"{self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"
+        self.amp_folder = f"{self.a['SaveDir']}/{self.a['ExpName']}/amplicon_data/"
         if not os.path.exists(self.amp_folder):
             os.mkdir(self.amp_folder)
 

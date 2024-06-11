@@ -72,7 +72,7 @@ Then these bioinformatics dependencies:
 
 ```$ source ~/.bashrc```
 
-# Quick-start
+# Quick-start: end to end pipeline
 ## GUI (Recommended)
 1. Install dependencies (see above)
 1. Start an API server with ```$ castanet``` (or ```$ uvicorn app.api:app --port 8001``` if you haven't created an alias command). Check that the Castanet startup message appears in your terminal window.
@@ -84,22 +84,24 @@ Then these bioinformatics dependencies:
 {
   "ExpDir": "./data/eval/",
   "ExpName": "CastanetTest",
+  "SaveDir": "./experiments",
   "RefStem": "data/eval/ref.fa",
   "SingleEndedReads": false,
+  "MatchLength": 40,
   "DoTrimming": true,
   "TrimMinLen": 36,
+  "DoKrakenPrefilter": true,
+  "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
+  "ExcludeIds": "9606",
+  "RetainIds": "",
+  "RetainNames": "",
+  "ExcludeNames": "Homo",
   "ConsensusMinD": 10,
   "ConsensusCoverage": 30,
   "ConsensusMapQ": 1,
   "ConsensusCleanFiles": true,
   "GtFile": "",
   "GtOrg": "",
-  "DoKrakenPrefilter": false,
-  "LineageFile": "data/ncbi_lineages_2023-06-15.csv.gz",
-  "ExcludeIds": "9606",
-  "RetainIds": "",
-  "RetainNames": "",
-  "ExcludeNames": "Homo",
   "KrakenDbDir": "kraken2_human_db/",
   "KeepDups": true,
   "Clin": "",
@@ -117,6 +119,20 @@ N.b. pay attention to your argument type: strings should be encased in double qu
 1. Complete steps 1--2 in the "GUI" section, above.
 1. Test that all of the dependencies needed for Castanet to run are installed and functioning as expected by hitting cURL'ing the check_dependencies endpoint (example script included: ```$ bash dev/check_dependencies.sh```). Check the output in either the Terminal or the API window (might need to scroll down) to ensure it completes successfully.
 1. Try an end-to-end run analysing a synthetic dataset that's included in this repository, by cURL'ing the end_to_end endpoint (example script included: ```$ bash dev/end_to_end.sh```). Output are saved to ./experiments/CastanetTest/.
+
+# Quick start: batch
+The Castanet batch endpoint applies the end to end analysis pipeline iteratively to multiple datasets within a master data folder. It assumes your data structure is:
+```
+-DataFolder
+|_>Sample_1
+|____>read1.fastq.gz
+|____>read2.fastq.gz
+|_>Sample_n
+|____>read1.fastq.gz
+|____>read2.fastq.gz
+```
+Otherwise, all other parameters are as in the "GUI" quickstart guide (above).
+
 
 # Parameter descriptions
 All parameter descriptions with data typing can be found in the GUI: follow steps 1--3 in "GUI" section (above), then scroll down to "Schemas" section; boxes can be expanded to show details for data schema for each endpoint.

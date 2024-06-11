@@ -116,10 +116,11 @@ async def check_deps(payload: Dep_check_data) -> str:
         return error_handler_api(ex)
 
 
-@app.post("/batch_eval/", tags=["Dev endpoints"])
+@app.post("/batch/", tags=["End to end pipelines"])
 async def batch(payload: Batch_eval_data) -> str:
     st = time.time()
     payload = process_payload(payload)
+    payload["BatchName"] = payload["DataFolder"]  # RM <TODO Do proper fix
     payload["StartTime"] = time.time()
     SeqNamesList = [enumerate_read_files(
         folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"]))]
@@ -220,7 +221,7 @@ async def end_to_end(payload: Amp_e2e_data) -> None:
 @timing
 def run_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)
@@ -238,7 +239,7 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
 @timing
 def run_amp_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)
@@ -252,7 +253,7 @@ def run_amp_end_to_end(payload, start_with_bam=False) -> str:
 @app.post("/preprocess/", tags=["Individual pipeline functions"])
 async def preprocess(payload: Preprocess_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_kraken(payload)
     return "Task complete. See terminal output for details."
 
@@ -260,7 +261,7 @@ async def preprocess(payload: Preprocess_data) -> str:
 @app.post("/filter_keep_reads/", tags=["Individual pipeline functions"])
 async def filter_keep_reads(payload: Filter_keep_reads_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     do_filter_keep_reads(payload)
     return "Task complete. See terminal output for details."
 
@@ -273,7 +274,7 @@ def do_filter_keep_reads(payload) -> None:
 @app.post("/trim_data/", tags=["Individual pipeline functions"])
 async def trim_data(payload: Trim_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_trim(payload)
     return "Task complete. See terminal output for details."
 
@@ -281,7 +282,7 @@ async def trim_data(payload: Trim_data) -> str:
 @app.post("/mapping/", tags=["Individual pipeline functions"])
 async def mapping(payload: Mapping_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_map(payload)
     return "Task complete. See terminal output for details."
 
@@ -289,7 +290,7 @@ async def mapping(payload: Mapping_data) -> str:
 @app.post("/generate_counts/", tags=["Individual pipeline functions"])
 async def count_mapped(payload: Count_map_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_counts(payload)
     return "Task complete. See terminal output for details."
 
@@ -297,7 +298,7 @@ async def count_mapped(payload: Count_map_data) -> str:
 @app.post("/analysis/", tags=["Individual pipeline functions"])
 async def analysis(payload: Analysis_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_analysis(payload)
     return "Task complete. See terminal output for details."
 
@@ -310,7 +311,7 @@ def run_analysis(payload) -> None:
 @app.post("/consensus/", tags=["Individual pipeline functions"])
 async def consensus(payload: Consensus_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     do_consensus(payload)
     return "Task complete. See terminal output for details."
 
@@ -323,7 +324,7 @@ def do_consensus(payload):
 @app.post("/post_filter/", tags=["Individual pipeline functions"])
 async def post_filter(payload: Post_filter_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_post_filter(payload)
     return "Task complete. See terminal output for details."
 
@@ -331,7 +332,7 @@ async def post_filter(payload: Post_filter_data) -> str:
 @app.post("/amplicons/", tags=["Individual pipeline functions"])
 async def analysis(payload: Amplicon_data) -> str:
     payload = process_payload(payload)
-    make_exp_dir(f'{payload["ExpRoot"]}/{payload["ExpName"]}')
+    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     run_amplicons(payload)
     return "Task complete. See terminal output for details."
 
