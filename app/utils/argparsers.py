@@ -39,7 +39,7 @@ def parse_args_bam_parse():
                         default="parse", help="Pass API arg in via shell.")
     parser.add_argument('-Mode', required=True,
                         default="parse", help="parse or filter.")
-    parser.add_argument('-ExpRoot', required=True,
+    parser.add_argument('-SaveDir', required=True,
                         default="./experiments", help="Pass API arg in via shell.")
     parser.add_argument('-MatchLength', required=True,
                         default="./experiments", help="Pass API arg in via shell.")

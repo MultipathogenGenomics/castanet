@@ -84,7 +84,7 @@ class Parse_bam_positions:
                 return
 
     def save_hit_dbs(self):
-        grp_aln_f = f"{self.argies.ExpRoot}/{self.argies.ExpName}/grouped_reads/"
+        grp_aln_f = f"{self.argies.SaveDir}/{self.argies.ExpName}/grouped_reads/"
         make_dir(f"mkdir {grp_aln_f}")
 
         for key in self.reads_by_hit.keys():
@@ -110,7 +110,7 @@ class Parse_bam_positions:
                 raise SystemExit(
                     f"Couldn't find reads to drop file: {self.argies.FilterFile}. Did your run generate one?")
 
-        with open(f"{self.argies.ExpRoot}/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
+        with open(f"{self.argies.SaveDir}/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
                     self.parse_bam_position(l)
