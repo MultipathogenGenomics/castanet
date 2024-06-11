@@ -87,12 +87,12 @@ class Dependencies:
 
     def check_viral_cons(self, paths):
         loginfo("Testing ViralConsensus")
-        out = shell(f"./ViralConsensus/viral_consensus", is_test=True)
+        out = shell(f"viral_consensus", is_test=True)
         if not "Missing required argument:" in out:
             stoperr(
                 f"ViralConsensus doesn't seem to be installed. Please check the Castanet readme for installation instructions.")
         shell(
-            f"./ViralConsensus/viral_consensus -i {paths[0]} -r data/eval/ref.fa -o {paths[3]} --min_depth 1")
+            f"viral_consensus -i {paths[0]} -r data/eval/ref.fa -o {paths[3]} --min_depth 1")
         if not os.path.exists(paths[3]):
             stoperr(
                 f"ViralConsensus did not function properly when called. Check it's installed.")
