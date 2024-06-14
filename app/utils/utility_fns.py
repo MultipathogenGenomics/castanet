@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from app.utils.get_genbank import DownloadGenBankFile
-from app.utils.shell_cmds import stoperr
+from app.utils.shell_cmds import stoperr, logerr
 
 
 def make_exp_dir(ExpNameAndRoot):
@@ -94,9 +94,14 @@ def enumerate_read_files(exp_dir, batch_name=None):
             exp_dir) if any(subst in i for subst in accepted_formats)]
     except NotADirectoryError:
         stoperr(f"You've pointed the batch function at what looks like a single folder. Batch eval should point at a folder containing multiple folders, each subfolder containing paired read files.")
-    assert len(
-        f_full) == 2, f"ERROR: Please ensure there are only 2 read files in your experiment directory (ExpDir). I detected these .fq/.fastq[.gz] files: {f_full if not len(f_full) == 0 else 'None'}"
-    return f_full
+    # assert len(
+    #     f_full) == 2, f"ERROR: Please ensure there are only 2 read files in your experiment directory (ExpDir). I detected these .fq/.fastq[.gz] files: {f_full if not len(f_full) == 0 else 'None'}"
+    if len(f_full) == 2:
+        return f_full
+    else:
+        logerr(
+            f"I didn't find exactly 2 .fq/.fastq[.gz] read files in folder, so I'm skipping it: {exp_dir}")
+        return []
 
 
 def enumerate_bam_files(exp_dir):
