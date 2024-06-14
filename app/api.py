@@ -123,7 +123,7 @@ async def batch(payload: Batch_eval_data) -> str:
     payload["BatchName"] = payload["DataFolder"]  # RM <TODO Do proper fix
     payload["StartTime"] = time.time()
     SeqNamesList = [enumerate_read_files(
-        folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"]))]
+        folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"])) if not folder == "__pycache__"]
     agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
     errs = []
 
