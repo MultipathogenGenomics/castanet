@@ -94,7 +94,8 @@ def process_payload(payload) -> dict:
                         vmem/(max(sizes) * os.cpu_count()))
                 else:
                     payload["NThreads"] = n_cpus
-                print(f"Setting AUTO NThreads to: {payload['NThreads']}")
+                end_sec_print(
+                    f"Setting AUTO NThreads to: {payload['NThreads']}")
             elif payload["NThreads"] == "hpc":
                 payload["NThreads"] == 1
             else:
@@ -133,15 +134,25 @@ async def check_deps(payload: Dep_check_data) -> str:
 
 @app.post("/batch/", tags=["End to end pipelines"])
 async def batch(payload: Batch_eval_data) -> str:
-    st = time.time()
     payload = process_payload(payload)
-    payload["BatchName"] = payload["DataFolder"]  # RM <TODO Do proper fix
-    payload["StartTime"] = time.time()
+    msg = do_batch(payload)
+    return msg
+
+
+def do_batch(payload):
+    st = time.time()
+    payload["BatchName"] = payload["DataFolder"]
+    payload["StartTime"] = st
     SeqNamesList = [enumerate_read_files(
         folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"])) if not folder == "__pycache__"]
     SeqNamesList = [i for i in SeqNamesList if not i == []]
     agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
     errs = []
+
+    if len(SeqNamesList) == 0:
+        stoperr(f"No files could be detected to analyse. "
+                f"Castanet expects batch runs to point towards a data folder containing sub-folders for each sample, which should contain only 2 read files each. "
+                f"Please refer to Castanet's readme for more details.")
 
     for SeqNames in SeqNamesList:
         try:
@@ -159,10 +170,9 @@ async def batch(payload: Batch_eval_data) -> str:
             end_sec_print(
                 f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
     msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
-    print(
-        f"***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***")
+    end_sec_print(msg)
     if len(errs) < 1:
-        return "Batch process task complete. See terminal output for details."
+        return "f***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***"
     else:
         return "Batch process task completed with errors. See terminal output for details."
 

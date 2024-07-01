@@ -13,4 +13,4 @@ def combine_output_csvs(fnames, out_fname):
                 f"Warning: Failed appending summary dataframe to batch csv: {fname}")
             continue
     beeg_df.to_csv(out_fname)
-    return f"Combine analytical output from all samples in batch saved to {out_fname}"
+    return f"Combined analytical output from all samples in batch saved to {out_fname}"
