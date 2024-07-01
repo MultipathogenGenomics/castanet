@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from app.utils.shell_cmds import stoperr
 from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
-from app.utils.utility_fns import make_exp_dir, enumerate_read_files
+from app.utils.utility_fns import make_exp_dir, enumerate_read_files, read_fa
 from app.utils.write_logs import write_input_params
 from app.utils.eval import Evaluate
 from app.utils.error_handlers import error_handler_api
@@ -79,7 +79,22 @@ def process_payload(payload) -> dict:
     if "NThreads" in payload.keys():
         if type(payload["NThreads"]) == str:
             if payload["NThreads"] == "auto":
-                payload["NThreads"] = os.cpu_count()
+                import psutil
+                import sys
+                import numpy
+                n_cpus = os.cpu_count()
+                vmem = psutil.virtual_memory()[1]
+                refseqs = read_fa(payload["RefStem"])
+                sizes = []
+                for i in refseqs:
+                    sizes.append(sys.getsizeof(i[1]) * 28)
+                size_vs_vmem = sum(sizes) * n_cpus
+                if size_vs_vmem >= vmem:
+                    payload["NThreads"] = numpy.ceil(
+                        vmem/(max(sizes) * os.cpu_count()))
+                else:
+                    payload["NThreads"] = n_cpus
+                print(f"Setting AUTO NThreads to: {payload['NThreads']}")
             elif payload["NThreads"] == "hpc":
                 payload["NThreads"] == 1
             else:

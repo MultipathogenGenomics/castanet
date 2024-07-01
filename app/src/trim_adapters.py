@@ -1,6 +1,6 @@
 import os
 from app.utils.shell_cmds import shell, stoperr
-from app.utils.utility_fns import read_fa, enumerate_read_files
+from app.utils.utility_fns import enumerate_read_files
 from app.utils.system_messages import end_sec_print
 
 
