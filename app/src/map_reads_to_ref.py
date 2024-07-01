@@ -27,7 +27,8 @@ def run_map(p):
     shell(
         f"bwa-mem2 mem -t {p['NThreads']} {p['RefStem']} {in_files[0]} {in_files[1]} | samtools view -F4 -Sb - | samtools sort - 1> {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam")
     if os.stat(f"{p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam").st_size < 2:
-        stoperr(f"BWA-MEM2 produced an empty BAM file. Check your BWA-MEM2 installation and that your input reads are of sufficent quality. This might also indicate an out of memory error, if you're crunching a huge dataset: if so, rerun the experiment with less cores (NThreads parameter).")
+        stoperr(f"BWA-MEM2 produced an empty BAM file. Check your BWA-MEM2 installation and that your input reads are of sufficent quality."
+                f"This might also indicate an out of memory error, if you're crunching a huge dataset: if so, rerun the experiment with less cores (NThreads parameter).")
     if CLEAN_UP:
         shell(
             f"rm {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}_[12]_clean.fastq")
