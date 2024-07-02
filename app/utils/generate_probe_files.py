@@ -53,7 +53,6 @@ class ProbeFileGen:
                 if len([i for i in leading_string.split('-') if not i == '']) == 1:
                     leading_string = f'{leading_string.replace("_","")}GenericStrain'
                 header = f">{leading_string}_{header.replace('>', '')}"
-                # header = f">{leading_string.replace('-','_')}_{header.replace('>', '')}"
 
             else:
                 raise ValueError(f"I COULDN'T PROCESS HEADER: {header}")

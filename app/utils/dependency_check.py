@@ -1,4 +1,4 @@
-from app.utils.shell_cmds import shell, stoperr, loginfo
+from app.utils.shell_cmds import shell, loginfo
 from app.utils.error_handlers import error_handler_cli
 import os
 import random

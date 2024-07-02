@@ -1,5 +1,5 @@
 import os
-from app.utils.shell_cmds import shell, stoperr
+from app.utils.shell_cmds import shell
 from app.utils.utility_fns import enumerate_read_files
 from app.utils.system_messages import end_sec_print
 from app.utils.error_handlers import error_handler_cli

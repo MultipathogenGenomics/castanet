@@ -20,7 +20,7 @@ class Parse_bam_positions:
         '''N.b. argies are a namespace (not a dict) because called from cli!!'''
         self.argies = argies
         self.min_match_length = int(self.argies.MatchLength)
-        self.n = 10  # Min n reads to decide we want to make a consensus
+        self.n = 3  # Min n reads to decide we want to make a consensus
         self.reads_by_hit = {}
 
     def getmatchsize(self, cigar):
