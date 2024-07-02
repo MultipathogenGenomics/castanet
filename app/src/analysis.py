@@ -119,7 +119,6 @@ class Analysis:
                         has_cluster = re.search(r'_cluster_[0-9]+', s)
                         if has_cluster:
                             pat = has_cluster[0]
-                            # {pat.replace('_','')}"
                             s = f"{s.replace(pat, '')}"
 
                         res = (probe_regexes[2].findall(s),)
@@ -239,8 +238,6 @@ class Analysis:
                     '''Generate two arrays for each probetype-genename group (D = number of occurrences, D1 = unique start/end positions)'''
                     D = np.zeros(int(gg.target_len.max()), dtype=np.uint32)
                     D1 = np.zeros(D.shape, dtype=np.uint32)
-                    # D.fill(0)
-                    # D1.fill(0)  # Clear target arrays RM < TODO Doesn't look like this does anything? test and rm
                     for target_id, gt in gg.groupby('target_id'):
                         loginfo(f'..... target: {target_id[:100]}.')
                         for _, row in gt.iterrows():

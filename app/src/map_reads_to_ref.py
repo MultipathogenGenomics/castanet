@@ -3,6 +3,7 @@ from app.utils.utility_fns import enumerate_read_files
 from app.utils.shell_cmds import shell
 from app.utils.system_messages import end_sec_print
 from app.utils.shell_cmds import stoperr
+from app.utils.error_handlers import error_handler_cli
 
 
 def run_map(p):
@@ -23,12 +24,10 @@ def run_map(p):
 
     end_sec_print(
         f"INFO: Beginning initial mapping using BWA\nThis may take a while for large files")
-    shell(f"bwa-mem2 index {p['RefStem']}")
-    shell(
-        f"bwa-mem2 mem -t {p['NThreads']} {p['RefStem']} {in_files[0]} {in_files[1]} | samtools view -F4 -Sb - | samtools sort - 1> {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam")
-    if os.stat(f"{p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam").st_size < 2:
-        stoperr(f"BWA-MEM2 produced an empty BAM file. Check your BWA-MEM2 installation and that your input reads are of sufficent quality."
-                f"This might also indicate an out of memory error, if you're crunching a huge dataset: if so, rerun the experiment with less cores (NThreads parameter).")
+    out = shell(f"bwa-mem2 index {p['RefStem']}", is_test=True)
+    shell(f"bwa-mem2 mem -t {p['NThreads']} {p['RefStem']} {in_files[0]} {in_files[1]} | samtools view -F4 -Sb - | samtools sort - 1> {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam")
+    error_handler_cli(
+        out, f"{p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam", "bwa-mem2", test_f_size=True)
     if CLEAN_UP:
         shell(
             f"rm {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}_[12]_clean.fastq")

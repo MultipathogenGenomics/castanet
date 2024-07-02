@@ -1,7 +1,8 @@
 import os
-from app.utils.shell_cmds import shell, stoperr
+from app.utils.shell_cmds import shell
 from app.utils.utility_fns import enumerate_read_files
 from app.utils.system_messages import end_sec_print
+from app.utils.error_handlers import error_handler_cli
 
 
 def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'):
@@ -20,13 +21,10 @@ def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'):
 
     if p["DoTrimming"]:
         end_sec_print("INFO: Read Trimming beginning.")
-        shell(f"{trim_path} PE -threads {p['NThreads']} {files['in_files'][0]} {files['in_files'][1]} {files['clean_files'][0]} {files['trim_files'][0]} {files['clean_files'][1]} {files['trim_files'][1]} ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}")
+        out = shell(f"{trim_path} PE -threads {p['NThreads']} {files['in_files'][0]} {files['in_files'][1]} {files['clean_files'][0]} {files['trim_files'][0]} {files['clean_files'][1]} {files['trim_files'][1]} ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}", is_test=True)
+        error_handler_cli(out, files['clean_files']
+                          [0], "trimmomatic", test_f_size=True)
 
-        '''Test for success'''
-        if not os.path.exists(files['clean_files'][0]) or not os.path.exists(files['clean_files'][1]):
-            stoperr(f"Trimming produced empty files. Check your TrimMinLen parameter is not too short for your sequences and that Trimmomatic is isntalled (you may use the dependency_check endpoint to check your installation).")
-        if os.stat(files['clean_files'][0]).st_size < 2 or os.stat(files['clean_files'][1]).st_size < 2:
-            stoperr(f"Trimming produced empty files. Check your TrimMinLen parameter is not too short for your sequences and that Trimmomatic is isntalled (you may use the dependency_check endpoint to check your installation).")
         if CLEAN_UP:
             for idx, fi in enumerate(files['in_files']):
                 shell(

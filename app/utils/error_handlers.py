@@ -96,12 +96,6 @@ def error_handler_analysis(argies) -> pd.DataFrame:
                 stoperr(
                     f'{argies["Clin"]} must contain at least the following columns: pt, clin_int')
 
-    '''Validate batch name'''
-    # if not argies["ExpName"].replace('_', '').isalnum():
-    #     breakpoint()
-    #     stoperr(
-    #         f'{argies["ExpName"]} is not a valid batch name. Must be alphanumeric.')
-
     '''Open data frame'''
     try:
         df = pd.read_csv(argies["input_file"], compression=('gzip' if argies["input_file"].endswith('.gz') else None), header=None,
@@ -165,7 +159,31 @@ def check_readf_ext(fnames):
     return ext
 
 
-def error_handler_kraken(out):
-    if "segmentation fault" in out.lower():
-        stoperr(f"Kraken2 exited with error: {out}."
-                f"Try updating Kraken2 ($ conda update kraken2). You can also try disabling Kraken2 in Castanet with the 'DoKrakenPrefilter' parameter.")
+def error_handler_cli(out, out_fname, tool, test_out_f=True, test_f_size=False):
+    cli_specific_errs = get_cli_tool_errors(tool)
+    if "command not found" in out.lower() or "segmentation fault" in out.lower() or not cli_specific_errs["healthy_msg"] in out.lower():
+        stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions.")
+    if test_out_f:
+        if not os.path.exists(out_fname):
+            stoperr(
+                f"{tool} seems to be installed but didn't produce output. Please check your installation manually.")
+    if test_f_size:
+        if os.stat(out_fname).st_size < 2:
+            stoperr(f"{tool} produced an empty output file."
+                    f"{cli_specific_errs['guidance']}")
+
+
+def get_cli_tool_errors(cli_tool):
+    err_objs = {
+        "kraken": {"healthy_msg": "loading database information"},
+        "java": {"healthy_msg": "usage: java"},
+        "trimmomatic": {"healthy_msg": "trimmomaticpe: started with arguments",
+                        "guidance": "Trimming produced empty files. Check your TrimMinLen parameter is not too short for your sequences and that Trimmomatic is isntalled (you may use the dependency_check endpoint to check your installation)."},
+        "bwa-mem2": {"healthy_msg": "looking to launch executable",
+                     "guidance": f"BWA-MEM2 produced an empty BAM file. Check your BWA-MEM2 installation and that your input reads are of sufficent quality. This might also indicate an out of memory error, if you're crunching a huge dataset: if so, rerun the experiment with less cores (NThreads parameter)."},
+        "samtools": {"healthy_msg": "program: samtools"},
+        "mafft": {"healthy_msg": "generating a scoring matrix for nucleotide"},
+        "viral_consensus": {"healthy_msg": "",
+                            "guidance": "ViralConsensus did not function properly when called. Check it's installed"},
+    }
+    return err_objs[cli_tool]

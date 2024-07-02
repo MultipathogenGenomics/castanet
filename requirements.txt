@@ -14,3 +14,4 @@ rapidfuzz==3.2.0
 biopython==1.81
 kaleido==0.2.1
 pymsaviz==0.4.2
+psutil==6.0.0

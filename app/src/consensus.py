@@ -13,7 +13,7 @@ from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
 from app.utils.basic_cli_calls import (
     samtools_index, bwa_index, find_and_delete, rm, samtools_read_num)
-from app.utils.error_handlers import error_handler_consensus_ref_corrected
+from app.utils.error_handlers import error_handler_consensus_ref_corrected, error_handler_cli
 from app.utils.similarity_graph import call_graph
 
 
@@ -152,15 +152,20 @@ class Consensus:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
         ref_aln_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln"
-        shell(f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {ref_aln_fname}",
-              "Mafft align ref seqs (CONSENSUS.PY)")
-        refs = read_fa(ref_aln_fname)
-        if len(refs) == 0:
+        ref_aln = read_fa(self.fnames['flat_cons_refs'])
+        if len(ref_aln) > 1:
+            '''Align flat consensus references'''
+            out = shell(
+                f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {ref_aln_fname}", is_test=True)
+            error_handler_cli(out, ref_aln_fname, "mafft")
+        else:
             '''If only 1 reference seq, the alignment wouldn't have worked - defer to temp refs file in these cases'''
             ref_aln_fname = self.fnames['flat_cons_refs']
-        shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
-              f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-              "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+        ref_aln_with_reads_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln"
+        out = shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
+                    f"> {ref_aln_with_reads_fname}", is_test=True)
+        error_handler_cli(out, ref_aln_with_reads_fname,
+                          "mafft", test_f_size=True)
         try:
             call_graph(self.a["ExpName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
                        f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", self.a["SaveDir"], is_eval=False)
@@ -263,9 +268,12 @@ class Consensus:
         '''Remap reads to flattened consensus, save, call stats, remove raw fastas'''
         bwa_index(
             f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta")
+        flat_cons_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta"
         shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam |"
               f"bwa-mem2 mem -t {self.a['NThreads']} {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta - | "
-              f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+              f"viral_consensus -i - -r {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_sequence.fasta -o {flat_cons_fname} --min_depth {self.a['ConsensusMinD']} --out_pos_counts {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv")
+        error_handler_cli("", flat_cons_fname,
+                          "viral_consensus", test_f_size=True)
         try:
             self.fix_terminal_gaps(f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_pos_counts.tsv",
                                    f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_remapped_consensus_sequence.fasta")
