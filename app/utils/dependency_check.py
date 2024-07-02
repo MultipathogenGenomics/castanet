@@ -54,7 +54,7 @@ class Dependencies:
     def check_mafft(self, paths):
         loginfo("Testing Mafft")
         out = shell(f"mafft --auto {paths[1]} > {paths[2]}", is_test=True)
-        error_handler_cli(out, paths[1], "mafft")
+        error_handler_cli(out, paths[2], "mafft")
 
     def check_viral_cons(self, paths):
         loginfo("Testing ViralConsensus")

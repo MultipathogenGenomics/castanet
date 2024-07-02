@@ -152,16 +152,20 @@ class Consensus:
         '''Make MSA of references, then add fragments from target consensuses'''
         loginfo(f"making consensus alignments for target group: {org_name}")
         ref_aln_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_ref_alignment.aln"
-        out = shell(
-            f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {ref_aln_fname}", is_test=True)
-        error_handler_cli(out, ref_aln_fname, "mafft")
-        refs = read_fa(ref_aln_fname)
-        if len(refs) == 0:
+        ref_aln = read_fa(self.fnames['flat_cons_refs'])
+        if len(ref_aln) > 1:
+            '''Align flat consensus references'''
+            out = shell(
+                f"mafft --thread {os.cpu_count()} --auto {self.fnames['flat_cons_refs']} > {ref_aln_fname}", is_test=True)
+            error_handler_cli(out, ref_aln_fname, "mafft")
+        else:
             '''If only 1 reference seq, the alignment wouldn't have worked - defer to temp refs file in these cases'''
             ref_aln_fname = self.fnames['flat_cons_refs']
-        shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
-              f"> {self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
-              "Mafft align consensus with ref seqs (CONSENSUS.PY)")
+        ref_aln_with_reads_fname = f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln"
+        out = shell(f"mafft --thread {os.cpu_count()} --auto --addfragments {self.fnames['flat_cons_seqs']} {ref_aln_fname}"
+                    f"> {ref_aln_with_reads_fname}", is_test=True)
+        error_handler_cli(out, ref_aln_with_reads_fname,
+                          "mafft", test_f_size=True)
         try:
             call_graph(self.a["ExpName"], org_name, f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_consensus_alignment.aln",
                        f"{self.a['folder_stem']}consensus_data/{org_name}/{org_name}_target_consensus_alignment", self.a["SaveDir"], is_eval=False)
