@@ -20,7 +20,7 @@ Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pi
 # Castanet workflow
 ![image](./docs/castanet_flowchart_final.drawio.png)
 
-Dotted lines indicate optional pipeline stages. Calls to dependencies are annotated.
+Dotted lines indicate optional pipeline stages.
 
 # Installation
 ## Prerequisites
@@ -28,42 +28,29 @@ We assume the user's system is set up with the following. See attached links for
 1. A Linux-like environment: tested on Ubuntu 22.04 and Windows Subsystems Linux (WSL2) Ubuntu 22.04. User experience with Windows/Mac will vary.
 1. Conda (for managing packages). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 1. Python > 3.7 <= 3.12 (developed for 3.10), ideally installed specifically to a Conda environment made for running Castanet.
-1. Java runtime environment (for running external dependency, Trimmomatic). On Debian-based Linux, install with   ```$ sudo apt install default-jre```, then check installation was successful with ```$ java -version```. On other platforms, see https://www.java.com/en/download/manual.jsp
+1. Java runtime environment (for running external dependency, Trimmomatic). On Ubuntu and other Debian-based Linux, install with   ```$ sudo apt install default-jre```, then check installation was successful with ```$ java -version```. On other platforms, see https://www.java.com/en/download/manual.jsp
 
 ## Environment setup
-We strongly recommend creating a new Conda environment for your Castanet install:
+*Your hardware and software configurations will vary from ours: the following should be used as guidance only and is not a subsitute for technical expertise, especially when users opt to install this on institutional machines and/or HPC devices. Users should study the terminal output to check for the success of each stage. If in doubt, contact your system administrator.*
 
+1. Create a new Conda environment:
 ```$ conda create --name castanet python==3.10```
-
-Which can be activated with:
-
+1. Activate Conda environment
 ```$ conda activate castanet```
-
-Before installing your pip libraries:
-
+1. Install pip libraries
 ```$ pip install -r requirements.txt```
-
-And the following Command Line packages:
-
+1. Update your distribution packages
 ```$ sudo apt update -y```
-
+1. Install distribution dependencies
 ```$ sudo apt install -y samtools unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev```
-
-(N.b. if any of the above commands fail, try ```$ sudo apt --fix-broken install```)
-
-Then these bioinformatics dependencies:
-```$ bash install_deps.sh```
-
-(Optional: alias the command to start a Castanet server; if doing on Mac, sub "bashrc" for "zshrc")
-
-```$ echo "alias castanet='conda activate castanet && uvicorn app.api:app --reload --port 8001'" >> ~/.bashrc```
-
-```$ source ~/.bashrc```
+(N.b. if any of the above commands fail, try ```$ sudo apt --fix-broken install```, then repeat this stage)
+1. Install bioinformatics CLI dependencies ```$ bash install_deps.sh```
+1. (Optional: alias the command to start a Castanet server; if doing on Mac, sub "bashrc" for "zshrc") ```$ echo "alias castanet='conda activate castanet && uvicorn app.api:app --reload --port 8001'" >> ~/.bashrc```, then refresh your terminal with ```$ source ~/.bashrc```.
 
 # Quick-start: end to end pipeline
 Users may choose a simplified CLI or a GUI-based method for the Castanet quick-start. Guides for both are included below, using a small test dataset that's included with the repository. N.b. the simplified CLI does not support the full range of input parameters that the GUI and programmatic CLI have (see "Parameter descriptions" section).
 
-There are broadly four arguments that new users need to be aware of when starting their first experiments:
+There are broadly arguments that new users need to be aware of when starting their first experiments:
 1. ExpDir: A folder containing your paired read files. N.b. Castanet currently ONLY supports data input from folders containing just these two read files. This directory path doesn't need to already exist, i.e. Castanet will make a new folder if it needs to. This folder path can be absolute or relative: e.g. "./my_folder" will look for (or create a new) folder within your Castanet repository; "/mnt/d/datasets" will look in your D drive for a folder called datasets.
 1. ExpName: A name for your experiment, which will be used to name the folder in which output data are saved.
 1. SaveDir: Directory path for where your experiment data will be saved; combines with ExpName. E.g. if user specifies SaveDir: "./experiments" and ExpName: "MyExperiment", data will be saved to "./experiments/MyExperiment". Path may be absolute or relative.
@@ -141,12 +128,12 @@ Within your experiment folder, you will find the following files and folders. Th
 The Castanet batch endpoint applies the end to end analysis pipeline iteratively to multiple datasets within a master data folder. It assumes your data structure is:
 ```
 -DataFolder
-|_>Sample_1
-|____>read1.fastq.gz
-|____>read2.fastq.gz
-|_>Sample_n
-|____>read1.fastq.gz
-|____>read2.fastq.gz
+|__>Sample_1
+|_____>read1.fastq.gz
+|_____>read2.fastq.gz
+|__>Sample_n
+|_____>read1.fastq.gz
+|_____>read2.fastq.gz
 ```
 Otherwise, all other parameters are as in the "GUI" quickstart guide (above).
 
