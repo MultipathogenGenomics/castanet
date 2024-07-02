@@ -13,25 +13,13 @@ O       o O       o O       o O       o O
 o       O o       O o       O O       O o
 ```
 
-Forked from https://github.com/tgolubch/castanet, originally described in https://doi.org/10.1101/716902
+Forked from https://github.com/tgolubch/castanet
 
-New implementation described in Mayne, R., Secret., S., Kean, K. et al. (2024) Castanet: rapid analysis of targeted multi-pathogen genomic data. (Preprint) (DOI TO FOLLOW).
-
-This implementation is written in Python 3 and has additional convenience features, such as end-to-end workflows, optimizations, automated installation of dependencies, an API and wider suite of features, including consensus sequence generator.
+Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pipeline for rapid analysis of targeted multi-pathogen genomic data (Preprint) (DOI TO FOLLOW).
 
 # Castanet workflow
-```mermaid
-flowchart TD
-    A[Remove unwanted reads]-->|Kraken2|B[participant Filter Reads]
-    B[Filter Reads]-->C[Trim adapters/poor quality reads]
-    C[Trim adapters/poor quality reads]-->|Trimmomatic|D[Mapping]
-    D[Mapping]-->|BWA, Samtools|E[Generate unique read counts]
-    E[Generate unique read counts]-->|Samtools|F[Analysis]
-    F[Analysis]-.->G[Post hoc filter]
-    F[Analysis]-->|Samtools, Mafft, ViralConsensus|I[Call consensus sequences]
-    I[Call consensus sequences]-.->J[Evaluate]
-    G[Post hoc read filter]-.->E
-```
+![image](./docs/castanet_flowchart_final.drawio.png)
+
 Dotted lines indicate optional pipeline stages. Calls to dependencies are annotated.
 
 # Installation
@@ -73,12 +61,28 @@ Then these bioinformatics dependencies:
 ```$ source ~/.bashrc```
 
 # Quick-start: end to end pipeline
-## GUI (Recommended)
+Users may choose a simplified CLI or a GUI-based method for the Castanet quick-start. Guides for both are included below, using a small test dataset that's included with the repository. N.b. the simplified CLI does not support the full range of input parameters that the GUI and programmatic CLI have (see "Parameter descriptions" section).
+
+There are broadly four arguments that new users need to be aware of when starting their first experiments:
+1. ExpDir: A folder containing your paired read files. N.b. Castanet currently ONLY supports data input from folders containing just these two read files. This directory path doesn't need to already exist, i.e. Castanet will make a new folder if it needs to. This folder path can be absolute or relative: e.g. "./my_folder" will look for (or create a new) folder within your Castanet repository; "/mnt/d/datasets" will look in your D drive for a folder called datasets.
+1. ExpName: A name for your experiment, which will be used to name the folder in which output data are saved.
+1. SaveDir: Directory path for where your experiment data will be saved; combines with ExpName. E.g. if user specifies SaveDir: "./experiments" and ExpName: "MyExperiment", data will be saved to "./experiments/MyExperiment". Path may be absolute or relative.
+1. RefStem: Path to a multi-fasta file containing your mapping reference sequences. It's essential that the headers in this file are named in a manner that Castanet can interpret (see section below, "Generating custom probe files").
+
+## Simplified CLI
+1. Install dependencies (see above).
+1. Check dependencies installed correctly; check for red warnings in the terminal as these will come with guidance as to any installation issues and how to fix them.
+ ```$ python3 -m dev.castanet_lite_deptest```
+1. Run an end-to-end job
+```$ python3 -m dev.castanet_lite -ExpDir data/eval -ExpName CastanetTest -SaveDir ./experiments -RefStem data/eval/ref.fa ```
+1. Check the output in "./experiments/CastanetTest" (output file descriptions in section below).
+
+## GUI
 1. Install dependencies (see above)
-1. Start an API server with ```$ castanet``` (or ```$ uvicorn app.api:app --port 8001``` if you haven't created an alias command). Check that the Castanet startup message appears in your terminal window.
+1. Start an API server with ```$ castanet``` (or ```$ uvicorn app.api:app --port 8001``` if you haven't created an alias command, but make sure that your Castanet conda environment is active). Check that the Castanet startup message appears in your terminal window.
 1. Open your favourite web browser and visit following address for the Castanet GUI ```http://127.0.0.1:8001/docs```.
-1. Scroll down to find the green "check_dependencies" box and click on it to expand. Chick "Try it out" (top right corner of green box), then the blue "Execute" box that appears underneath. This will test that all of the dependencies needed for Castanet to run are installed and functioning as expected. Check the output in either the Terminal or the API window (might need to scroll down) to ensure it completes successfully.
-1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below, trigger the function with "Execute" button. This triggers an end-to-end run analysing a synthetic dataset that's included in this repository. Output are saved to ./experiments/CastanetTest/.
+1. Scroll down to find the green "check_dependencies" box and click on it to expand. Chick "Try it out" (top right corner of green box), then the blue "Execute" box that appears underneath. This will test that all of the dependencies needed for Castanet to run are installed and functioning as expected. Check the output in either the Terminal or the API window (might need to scroll down) to ensure it completes successfully; check for red warnings in the terminal as these will come with guidance as to any installation issues and how to fix them
+1. Expand green drop-down for end_to_end endpoint. Click "Try it out" button (top right of expanded green boxes). Copy-paste command string below, trigger the function with "Execute" button. This triggers an end-to-end run analysing a synthetic dataset that's included in this repository. Output are saved to ./experiments/CastanetTest/ (output file descriptions in section below).
 
 ```
 {
@@ -115,10 +119,23 @@ Then these bioinformatics dependencies:
 
 N.b. pay attention to your argument type: strings should be encased in double quotes, whereas numbers and booleans (true, false) don't need to be. Any arguments that default to empty ('"ArgName": ""') are optional and may be left blank. The API will give you error messages in the "response body" box in your web browser, and detailed error messags will be printed to the terminal.
 
-## Command line
+## Programmatic API calls
+Expert users may wish to interact with the Castanet API programmatically. The following will reproduce the "quick-start" guide workflow.
 1. Complete steps 1--2 in the "GUI" section, above.
 1. Test that all of the dependencies needed for Castanet to run are installed and functioning as expected by hitting cURL'ing the check_dependencies endpoint (example script included: ```$ bash dev/check_dependencies.sh```). Check the output in either the Terminal or the API window (might need to scroll down) to ensure it completes successfully.
 1. Try an end-to-end run analysing a synthetic dataset that's included in this repository, by cURL'ing the end_to_end endpoint (example script included: ```$ bash dev/end_to_end.sh```). Output are saved to ./experiments/CastanetTest/.
+
+# Output file descriptions
+Within your experiment folder, you will find the following files and folders. This list is not exhaustive and some of the persistent files created by Castanet are not human-readable.
+
+1. *consensus_data*: Castanet will attempt to generate a consensus sequence for each organism with reads mapped to it, ONLY IF reads have coverage, depth and map quality that exceed the thresholds the user specifies (see "Parameter descriptions" section): these are 30%, 10 and 1.0, respectively, by default. When a consensus has been generated, it will be in a sub-folder whose name is that of the organism.
+    1. {name}_remapped_consensus_sequence.fasta: your consensus sequence.
+    1. {name}_consensus_coverage.png: plot of per-position coverage across your consensus.
+    1. {name}_target_consensus_alignment.png: alignment plot of your per-target subconsensues with their respective mapping reference sequences.
+1. *Depth_output*: This folder will contain graphs showing per-position read depth, for both total and deduplicated (unique) reads, for each organism with a significant number of reads.
+1. *{ExpName}_depth.csv*: This spreadsheet contains the main numerical output from Castanet. Please refer to the supplementary information spreadsheet from our article for a detailled description of each statistic.
+1. *{ExpName}_read_distributions.png*: Pie chart showing distribution of reads between each organism.
+
 
 # Quick start: batch
 The Castanet batch endpoint applies the end to end analysis pipeline iteratively to multiple datasets within a master data folder. It assumes your data structure is:
@@ -133,12 +150,22 @@ The Castanet batch endpoint applies the end to end analysis pipeline iteratively
 ```
 Otherwise, all other parameters are as in the "GUI" quickstart guide (above).
 
+## Simplified CLI
+1. Ensure dependencies are installed and that the dependency check has been run successfully.
+1. Run a batch job, substituting ```<<InputFol>>``` with your input data folder and ```<<MappingRef>>``` with your mapping reference file path: ```$ python3 -m dev.castanet_lite -ExpDir <<InputFol>> -ExpName CastanetTest -SaveDir ./experiments -RefStem <<MappingRef>> -Batch True```
+1. Output will be saved in multiple folders (one for each read pair) in your SaveDir folder. A summary csv will be generated in the Castanet repository called {ExpName}.csv.
+
+## GUI
+1. Start an API server with ```$ castanet``` (or ```$ uvicorn app.api:app --port 8001``` if you haven't created an alias command, but make sure that your Castanet conda environment is active). Check that the Castanet startup message appears in your terminal window.
+1. Open your favourite web browser and visit following address for the Castanet GUI ```http://127.0.0.1:8001/docs```.
+1. Expand green drop-down for batch endpoint. Click "Try it out" button (top right of expanded green boxes). Amend the DataFolder argument to point towards your data folder (remembering to preserve the punctuation marks in the text box), then change the ExpName, SaveDir and RefStem arguments accordingly (see above).
+1. Output will be saved in multiple folders (one for each read pair) in your SaveDir folder. A summary csv will be generated in the Castanet repository called {ExpName}.csv.
+
 
 # Parameter descriptions
-All parameter descriptions with data typing can be found in the GUI: follow steps 1--3 in "GUI" section (above), then scroll down to "Schemas" section; boxes can be expanded to show details for data schema for each endpoint.
+All parameter descriptions with data typing can be found in the GUI: follow steps 1--3 in "GUI" section (above), then scroll down to "Schemas" section; boxes can be expanded to show details for data schema for each endpoint. N.b. this is a schema, NOT an API argument, so don't try copy-pasting it into the GUI dialogue boxes.
 ## /end_to_end/
 ```
-{
   "ExpDir": Folder containing your input data. Castanet expects this folder to contain only 2 files, i.e. your paired reads, in .fastq/.fastq.gz format.
   "ExpName": Run designation; your output folder will have this name.
   "RefStem": Path to file containing mapping references, in .fasta format
@@ -165,8 +192,6 @@ All parameter descriptions with data typing can be found in the GUI: follow step
   "SingleEndedReads": Experimental feature for non-paired read sets. Recommend to leave as: false.
   "GtFile": (Optional) Used to specify a CSV file containing at least columns: Primary_accession and GenBank_accession, for evaluating consensus seqs vs ground truth.
   "GtOrg": (Optional) Name of target organism to measure ground truth sequence against.
-
-}
 ```
 
 # Generating custom probe files
@@ -296,6 +321,11 @@ We use several algorithms to construct consensus sequences, one of which is Mori
 ```https://github.com/niemasd/ViralConsensus```
 
 # Changelog
+## Version 6, 02/07/24
+1. Castanet "lite" - simplified CLI added
+1. Full CLI tool test suite
+1. Updated readme
+
 ## Version 5, 07/03/24
 1. Additional workflow for analysing pre-mapped bam files
 1. Simplified all workflows by automatic inference of sequence/bam files in input folders
