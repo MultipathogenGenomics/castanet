@@ -4,6 +4,7 @@ from app.utils.utility_fns import enumerate_bam_files
 from app.utils.shell_cmds import shell
 from app.utils.system_messages import end_sec_print
 from app.utils.shell_cmds import stoperr
+from app.utils.error_handlers import error_handler_cli
 
 
 def run_counts(p):
@@ -20,8 +21,10 @@ def run_counts(p):
 
     '''Split samtools pipe to python with persistent file for ease of debugging'''
     end_sec_print("Info: Generating read counts ")
-    shell(
-        f"""samtools view -F2048 -F4 {in_file} > {bamview_fname}""")
+    # Included for error handler test as successful call prints nowt
+    out = shell(f"samtools", is_test=True)
+    shell(f"""samtools view -F2048 -F4 {in_file} > {bamview_fname}""")
+    error_handler_cli(out, bamview_fname, "samtools")
     sp.run(  # Use subprocess run rather than Popen as complex call is a PITA
         f"python3 -m app.src.parse_bam -Mode parse -SeqName {p['ExpName']} -ExpDir {p['ExpDir']}/ -ExpName {p['ExpName']} -SingleEnded {p['SingleEndedReads']} -SaveDir {p['SaveDir']} -MatchLength {p['MatchLength']} | sort | uniq -c | sed s'/ /,/'g | sed s'/^[,]*//'g > {p['SaveDir']}/{p['ExpName']}/{p['ExpName']}_PosCounts.csv", shell=True)
     shell(f"rm {bamview_fname}")
