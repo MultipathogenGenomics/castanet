@@ -15,7 +15,7 @@ o       O o       O o       O O       O o
 
 Forked from https://github.com/tgolubch/castanet
 
-Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pipeline for rapid analysis of targeted multi-pathogen genomic data (Preprint) (DOI TO FOLLOW).
+Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pipeline for rapid analysis of targeted multi-pathogen genomic data (Preprint) https://doi.org/10.1101/2024.06.28.601013.
 
 # Castanet workflow
 ![image](./docs/castanet_flowchart_final.drawio.png)
@@ -29,6 +29,8 @@ We assume the user's system is set up with the following. See attached links for
 1. Conda (for managing packages). See https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html
 1. Python > 3.7 <= 3.12 (developed for 3.10), ideally installed specifically to a Conda environment made for running Castanet.
 1. Java runtime environment (for running external dependency, Trimmomatic). On Ubuntu and other Debian-based Linux, install with   ```$ sudo apt install default-jre```, then check installation was successful with ```$ java -version```. On other platforms, see https://www.java.com/en/download/manual.jsp
+1. Ensure your distribution packages are up to date. On Ubuntu and other Debian-based Linux:
+```$ sudo apt update -y```
 
 ## Environment setup
 *Your hardware and software configurations will vary from ours: the following should be used as guidance only and is not a subsitute for technical expertise, especially when users opt to install this on institutional machines and/or HPC devices. Users should study the terminal output to check for the success of each stage. If in doubt, contact your system administrator.*
@@ -39,10 +41,8 @@ We assume the user's system is set up with the following. See attached links for
 ```$ conda activate castanet```
 1. Install pip libraries
 ```$ pip install -r requirements.txt```
-1. Update your distribution packages
-```$ sudo apt update -y```
 1. Install distribution dependencies
-```$ sudo apt install -y samtools unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev```
+```$ sudo apt install -y unzip make libbz2-dev libcurl4-openssl-dev liblzma-dev g++ automake bzip2 gcc wget zlib1g-dev```
 (N.b. if any of the above commands fail, try ```$ sudo apt --fix-broken install```, then repeat this stage)
 1. Install bioinformatics CLI dependencies ```$ bash install_deps.sh```
 1. (Optional: alias the command to start a Castanet server; if doing on Mac, sub "bashrc" for "zshrc") ```$ echo "alias castanet='conda activate castanet && uvicorn app.api:app --reload --port 8001'" >> ~/.bashrc```, then refresh your terminal with ```$ source ~/.bashrc```.
