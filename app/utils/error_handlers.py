@@ -169,7 +169,8 @@ def error_handler_cli(out, out_fname, tool, test_out_f=True, test_f_size=False):
             # Don't fail here as it represents casting to an out file, which would have no response
             ...
         else:
-            stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions. {default_guidance}")
+            stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions. {default_guidance}"
+                    f"{tool} output: {out}")
     if test_out_f:
         if not os.path.exists(out_fname):
             stoperr(

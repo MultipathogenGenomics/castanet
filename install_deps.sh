@@ -3,13 +3,13 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 
 # Install kraken2 via conda, for removing human reads
-conda install -y -c bioconda kraken2
+conda install -y -c bioconda kraken2=2.1.3
 
 # Install samtools # RM < SHOULD BE INSTALLED BY KRAKEN
 # conda install -y "samtools>=1.10"
 
 # Install mafft
-conda install -y -c bioconda mafft
+conda install -y -c bioconda mafft=7.520
 
 # Install MASH
 conda install -y -c bioconda mash
@@ -23,10 +23,10 @@ tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
 # wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
 # unzip Trimmomatic-0.39.zip
 # rm Trimmomatic-0.39.zip
-conda install -y trimmomatic
+conda install -y trimmomatic=0.39
 
 # Install BWA
-conda install -y bwa-mem2
+conda install -y bwa-mem2=2.2.1
 
 # Install viral consensus tool
-conda install -y viral_consensus
+conda install -y viral_consensus=0.0.5

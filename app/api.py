@@ -166,7 +166,8 @@ def do_batch(payload, start_with_bam=False):
         try:
             if not start_with_bam:
                 '''End to end pipelines'''
-                exp_name = SeqNames[0].split("/")[-3]
+                exp_name = SeqNames[0].split(
+                    "/")[-3]  # RM < TODO TEST THIS IS ROBUST WITH DIFFERENT FOL STRUCTURES
                 payload["SeqNames"] = SeqNames
                 payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
                 payload["ExpName"] = exp_name
