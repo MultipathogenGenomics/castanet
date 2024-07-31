@@ -2,8 +2,9 @@ import os
 import re
 import numpy as np
 import pandas as pd
-from app.utils.shell_cmds import shell, loginfo, logerr
+from app.utils.shell_cmds import shell, loginfo, logerr, stoperr
 from app.utils.utility_fns import read_fa
+from app.utils.error_handlers import error_handler_cli
 
 '''
 REQS: BAM and pair of FASTQs in dir, activate Castanet env
@@ -18,7 +19,7 @@ class Amplicons:
         self.a = payload
         self.delete_softclips = True  # RM < TODO Parameterise
         self.min_amp_len = 40  # RM < TODO Parameterise
-        self.do_aln_graphs = False  # RM < TODO Parameterise
+        self.do_aln_graphs = True  # RM < TODO Parameterise
         self.results = {}
         self.bam_fname = f"{self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"
         self.amp_folder = f"{self.a['SaveDir']}/{self.a['ExpName']}/amplicon_data/"
@@ -27,17 +28,20 @@ class Amplicons:
 
     def get_tsvs(self):
         '''Convert bam to readable TSV format and input FASTQ to FASTA'''
+
         tsv_fname = self.bam_fname.replace(".bam", ".tsv")
-        # RM TODO < TEST OUTPUT
-        shell(f"samtools view -F 0x40 {self.bam_fname} > {tsv_fname}")
+
+        out = shell(f"samtools view -F 0x40 {self.bam_fname} > {tsv_fname}",
+                    ret_output=True)
+        error_handler_cli(out.decode("utf-8"), tsv_fname,
+                          "samtools", test_out_f=True, test_f_size=True)
 
         '''Read in BAM view TSV and FASTAs'''
         try:
             df = pd.read_csv(tsv_fname, sep="\t", header=None,
-                             error_bad_lines=False)
-        except:
-            print(f"No file to read for {self.bam_fname}")
-            return
+                             on_bad_lines="skip")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"No file to read for {self.bam_fname}")
 
         # [seqid, refname, cigar, seq]
         seqs = df[[0, 2, 5, 9]].values.tolist()
@@ -142,6 +146,9 @@ class Amplicons:
                 if "ValueError" in out:
                     logerr(
                         f"I couldn't produce an alignment plot for ref {ref}, this usually happens if you have so many unique amplicons to align that the plot would be insanely huge.")
+                elif "Traceback" in out:  # RM < TODO Proper error handler - look for output
+                    stoperr(
+                        f"Plotting alignment raised an error. This usually happens if pyMSAviz isn't installed, see error output for more details: {out}")
                 if "TEMP" in aln_file:
                     shell(f"rm {aln_file}")
 
