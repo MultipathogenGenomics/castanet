@@ -93,14 +93,16 @@ class Data_AnalysisExtras(BaseModel):
 
 
 class Data_ConsensusParameters(BaseModel):
+    DoConsensus: bool = Query(True,
+                              description="If true, run the Castanet consensus generator pipeline stage (default = True).")
     ConsensusMinD: int = Query(10,
-                               description="Minimum base depth required to make a call, for consensus calling functions")
+                               description="Minimum base depth required to make a call, for consensus calling functions (ignored if DoConsensus = false)")
     ConsensusCoverage: float = Query(30.0,
-                                     description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus.")
+                                     description="Do not generate consensus if coverage < n. Applies to both target consensuses and final, remapped consensus (ignored if DoConsensus = false).")
     ConsensusMapQ: float = Query(1.0,
-                                 description="Minimum quality value for a target consensus to be included in the remapped consensus.")
+                                 description="Minimum quality value for a target consensus to be included in the remapped consensus (ignored if DoConsensus = false).")
     ConsensusCleanFiles: bool = Query(True,
-                                      description="If True, consensus generator will delete BAM files for reads aggregated to each target organism. Disable to retain files for use in downstream analysis.")
+                                      description="If True, consensus generator will delete BAM files for reads aggregated to each target organism. Disable to retain files for use in downstream analysis (ignored if DoConsensus = false).")
     GtFile: Optional[str] = Query('',
                                   description="(OPTIONAL - EVAL MODE ONLY) CSV file containing at least columns: `Primary_accession` and `GenBank_accession` for evaluating consensus seqs vs ground truth")
     GtOrg: Optional[str] = Query('',

@@ -139,36 +139,52 @@ async def batch(payload: Batch_eval_data) -> str:
     return msg
 
 
-def do_batch(payload):
+def do_batch(payload, start_with_bam=False):
     st = time.time()
     payload["BatchName"] = payload["DataFolder"]
     payload["StartTime"] = st
-    SeqNamesList = [enumerate_read_files(
-        folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"])) if not folder == "__pycache__"]
-    SeqNamesList = [i for i in SeqNamesList if not i == []]
     agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
     errs = []
 
+    if not start_with_bam:
+        '''Standard end to end pipelines'''
+        SeqNamesList = [enumerate_read_files(
+            folder, payload["BatchName"]) for folder in sorted(os.listdir(payload["BatchName"])) if not folder == "__pycache__"]
+        SeqNamesList = [i for i in SeqNamesList if not i == []]
+    else:
+        '''BAM only pipelines'''
+        SeqNamesList = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+            os.path.expanduser(payload["BatchName"])) for f in fn]
+
     if len(SeqNamesList) == 0:
         stoperr(f"No files could be detected to analyse. "
-                f"Castanet expects batch runs to point towards a data folder containing sub-folders for each sample, which should contain only 2 read files each. "
+                f"Castanet expects batch runs to point towards either: a data folder containing sub-folders for each sample, which should contain only 2 read files each (end to end batch pipelines); "
+                f"or a folder containing multiple bam files (analyse bam batch pipelines). "
                 f"Please refer to Castanet's readme for more details.")
 
     for SeqNames in SeqNamesList:
         try:
-            exp_name = SeqNames[0].split("/")[-3]
-            payload["SeqNames"] = SeqNames
-            payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
-            payload["ExpName"] = exp_name
+            if not start_with_bam:
+                '''End to end pipelines'''
+                exp_name = SeqNames[0].split("/")[-3]
+                payload["SeqNames"] = SeqNames
+                payload["ExpDir"] = "/".join(SeqNames[0].split("/")[:-1])
+                payload["ExpName"] = exp_name
+            else:
+                '''BAM only pipelines'''
+                exp_name = SeqNames.split("/")[-2]
+                payload["ExpDir"] = "/".join(SeqNames.split("/")[:-1])
+                payload["ExpName"] = exp_name
             agg_analysis_csvs.append(
                 f"experiments/{payload['ExpName']}/{exp_name}_depth_with_clin.csv")
-            run_end_to_end(payload)
+            run_end_to_end(payload, start_with_bam)
             do_eval(payload)
         except Exception as ex:
             err = error_handler_api(ex)
             errs.append(exp_name)
             end_sec_print(
                 f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
+
     msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
     end_sec_print(msg)
     if len(errs) < 1:
@@ -254,11 +270,12 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
         do_filter_keep_reads(payload)
         run_trim(payload)
         run_map(payload)
-    run_counts(payload)
-    run_analysis(payload)
+    run_counts(payload, start_with_bam)
+    run_analysis(payload, start_with_bam)
     if payload["PostFilt"]:
         run_post_filter(payload)
-    do_consensus(payload)
+    if payload["DoConsensus"]:
+        do_consensus(payload, start_with_bam)
     return "Task complete. See terminal output for details."
 
 
@@ -329,8 +346,8 @@ async def analysis(payload: Analysis_data) -> str:
     return "Task complete. See terminal output for details."
 
 
-def run_analysis(payload) -> None:
-    cls = Analysis(payload)
+def run_analysis(payload, start_with_bam=False) -> None:
+    cls = Analysis(payload, start_with_bam)
     cls.main()
 
 
@@ -342,8 +359,8 @@ async def consensus(payload: Consensus_data) -> str:
     return "Task complete. See terminal output for details."
 
 
-def do_consensus(payload):
-    clf = Consensus(payload)
+def do_consensus(payload, start_with_bam=False):
+    clf = Consensus(payload, start_with_bam)
     clf.main()
 
 

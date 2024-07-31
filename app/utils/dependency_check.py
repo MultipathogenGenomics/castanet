@@ -21,10 +21,7 @@ class Dependencies:
 
     def check_trimmomatic(self):
         loginfo("Testing Trimmomatic")
-        out = shell("java", is_test=True)
-        error_handler_cli(out, "dummy_outf", "java", test_out_f=False)
-
-        trim_path = 'java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'
+        trim_path = "trimmomatic"  # RM < TODO Test after migrating to conda install
         trimmies = [f"{self.fol}{self.hash}_1_clean.fastq", f"{self.fol}{self.hash}_1_trimmings.fq",
                     f"{self.fol}{self.hash}_2_clean.fastq", f"{self.fol}{self.hash}_2_trimmings.fq"]
         out = shell(
