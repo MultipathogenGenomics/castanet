@@ -161,12 +161,15 @@ def check_readf_ext(fnames):
 
 def error_handler_cli(out, out_fname, tool, test_out_f=True, test_f_size=False):
     cli_specific_errs = get_cli_tool_errors(tool)
+    default_guidance = ""
+    if "guidance" in cli_specific_errs.keys():
+        default_guidance = cli_specific_errs["guidance"]
     if "command not found" in out.lower() or "segmentation fault" in out.lower() or not cli_specific_errs["healthy_msg"] in out.lower():
         if out == "" and test_f_size:
             # Don't fail here as it represents casting to an out file, which would have no response
             ...
         else:
-            stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions.")
+            stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions. {default_guidance}")
     if test_out_f:
         if not os.path.exists(out_fname):
             stoperr(
@@ -179,7 +182,8 @@ def error_handler_cli(out, out_fname, tool, test_out_f=True, test_f_size=False):
 
 def get_cli_tool_errors(cli_tool):
     err_objs = {
-        "kraken": {"healthy_msg": "loading database information"},
+        "kraken": {"healthy_msg": "loading database information",
+                   "guidance": "Ensure it's installed and that you've got a Kraken2 database in the place Castanet expects it (via KrakenDbDir argument)."},
         "java": {"healthy_msg": "usage: java"},
         "trimmomatic": {"healthy_msg": "trimmomaticpe: started with arguments",
                         "guidance": "Trimming produced empty files. Check your TrimMinLen parameter is not too short for your sequences and that Trimmomatic is isntalled (you may use the dependency_check endpoint to check your installation)."},

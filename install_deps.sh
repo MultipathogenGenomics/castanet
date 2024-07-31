@@ -20,9 +20,10 @@ curl -L -o kraken2_human_db/kraken2_human_db.tar.gz https://ndownloader.figshare
 tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
 
 # Download trimmomatic and extract
-wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
-unzip Trimmomatic-0.39.zip
-rm Trimmomatic-0.39.zip
+# wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
+# unzip Trimmomatic-0.39.zip
+# rm Trimmomatic-0.39.zip
+conda install -y trimmomatic
 
 # Install BWA
 conda install -y bwa-mem2

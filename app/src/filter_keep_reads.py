@@ -3,7 +3,7 @@ import os
 import subprocess as sp
 from collections import deque
 
-from app.utils.shell_cmds import loginfo, read_line, shell
+from app.utils.shell_cmds import loginfo, read_line, shell, logerr
 from app.utils.argparsers import parse_args_filter_keep_reads
 from app.utils.error_handlers import error_handler_filter_keep_reads
 from app.utils.system_messages import end_sec_print
@@ -79,6 +79,7 @@ class FilterKeepReads:
 
         else:
             '''If not doing kraken filter, just copy and decompress the files'''
+            logerr("Skipping Kraken Prefilter as you specified to.")
             self.reads_to_exclude = self.reads_to_keep = ()
             self.a['o'] = [
                 f'{self.a["SaveDir"]}/{self.a["ExpName"]}/{self.a["ExpName"]}_{i}_filt.fastq' for i in range(1, 3)]

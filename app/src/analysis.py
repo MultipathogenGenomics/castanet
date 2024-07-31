@@ -14,15 +14,16 @@ from app.utils.utility_fns import trim_long_fpaths, read_fa, enumerate_bam_files
 
 
 class Analysis:
-    def __init__(self, argies, api_entry=True) -> None:
+    def __init__(self, argies, start_with_bam, api_entry=True) -> None:
         self.a = argies
         self.output_dir = f"{self.a['SaveDir']}/{self.a['ExpName']}/"
+        self.bam_fname = f"{self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.bam" if not start_with_bam else f"{argies['ExpDir']}/{[i for i in os.listdir(argies['ExpDir']) if i[-4:] == '.bam'][0]}"
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
-        if not os.path.exists(f"{self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.bam"):
+        if not os.path.exists(self.bam_fname):
             '''If entry from analyse endpoint, cp bam file from input folder to experiment folder'''
             shell(
-                f"cp {enumerate_bam_files(self.a['ExpDir'])} {self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.bam")
+                f"cp {enumerate_bam_files(self.a['ExpDir'])} {self.bam_fname}")
         if api_entry:
             self.a["input_file"] = f"{self.output_dir}/{self.a['ExpName']}_PosCounts.csv"
         self.df = error_handler_analysis(self.a)
@@ -411,7 +412,7 @@ class Analysis:
         else:
             loginfo(f"Inferring raw read number from bam file")
             read_num = samtools_read_num(
-                self.output_dir, self.a["ExpName"])
+                self.bam_fname)
             samples = pd.DataFrame(
                 [{"sampleid": self.a["ExpName"], "pt": "", "rawreadnum": read_num}])
 

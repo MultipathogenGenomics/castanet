@@ -1,11 +1,12 @@
 import os
-from app.utils.shell_cmds import shell
+from app.utils.shell_cmds import shell, logerr
 from app.utils.utility_fns import enumerate_read_files
 from app.utils.system_messages import end_sec_print
 from app.utils.error_handlers import error_handler_cli
 
 
-def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'):
+# def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'): # RM < TODO test after switching to bioconda install
+def run_trim(p, trim_path='trimmomatic'):
     '''Call Trimmomatic trim CLI tool; check it worked; remove interim files'''
     p["ExpDir"] = f"{p['ExpDir']}/"
     CLEAN_UP = True
@@ -31,6 +32,7 @@ def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'):
                     f"rm {files['in_files'][idx]} {files['trim_files'][idx]}")
     else:
         '''If not trimming, just rename the filtered files to the trim output fnames'''
+        logerr(f"Skipping trimming as you specified to")
         for idx, fi in enumerate(files['in_files']):
             shell(f"mv {fi} {files['clean_files'][idx]}")
     end_sec_print("INFO: Read Trimming complete.")

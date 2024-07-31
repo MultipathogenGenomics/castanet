@@ -21,7 +21,7 @@ class Consensus:
     '''Take all targets in one probetype/species aggregation, call consensus for each,
     flatten consensuses into single sequence.'''
 
-    def __init__(self, payload) -> None:
+    def __init__(self, payload, start_with_bam) -> None:
         self.a = payload
         self.a["folder_stem"] = f"{self.a['SaveDir']}/{self.a['ExpName']}/"
         self.target_consensuses = {}
@@ -30,6 +30,8 @@ class Consensus:
         self.probe_names = pd.read_csv(
             f"{self.a['SaveDir']}/{self.a['ExpName']}/probe_aggregation.csv")
         self.fnames = get_consensus_fnames(self.a)
+        if start_with_bam:
+            self.fnames['master_bam'] = f"{self.a['ExpDir']}/{[i for i in os.listdir(self.a['ExpDir']) if i[-4:] == '.bam'][0]}"
         self.eval_stats = {}
         make_dir(f"mkdir {self.a['folder_stem']}consensus_data/")
 
@@ -39,11 +41,13 @@ class Consensus:
         group_bam_fname = f"{self.a['folder_stem']}grouped_reads/{tar_name}/{tar_name}.bam"
         shell(f"samtools view -b {self.fnames['master_bam']} {tar_name} "
               f"> {group_bam_fname}")
+        # TODO < Test output
         match_str = f"(^|\s){tar_name}"
         if len(tar_name) < 99:
             match_str = f"{match_str}($|\s)"
         out = shell(f"samtools coverage {group_bam_fname} | grep -E '{match_str}'",
                     "Coverage, consensus filter bam", ret_output=True)
+        # TODO < Output test
 
         try:
             out = out.decode().replace("\n", "").split("\t")[6:9]
@@ -250,7 +254,7 @@ class Consensus:
 
             '''Estimate number of mapped reads in the final alignment (get just primary mapped reads, div 2 to average F & R strands)'''
             self.eval_stats[org_name]["filtered_collated_read_num"] = round(samtools_read_num(
-                f"{self.a['folder_stem']}consensus_data/{org_name}", "collated_reads", '-F 0x904 -q 20') / 2)
+                f"{self.a['folder_stem']}consensus_data/{org_name}/collated_reads.bam", '-F 0x904 -q 20') / 2)
             return coverage_filter
 
     def filter_tar_consensuses(self, org_name, filter) -> None:
