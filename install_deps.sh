@@ -5,8 +5,8 @@ conda config --add channels conda-forge
 # Install kraken2 via conda, for removing human reads
 conda install -y -c bioconda kraken2
 
-# Install samtools
-conda install -y "samtools>=1.10"
+# Install samtools # RM < SHOULD BE INSTALLED BY KRAKEN
+# conda install -y "samtools>=1.10"
 
 # Install mafft
 conda install -y -c bioconda mafft
