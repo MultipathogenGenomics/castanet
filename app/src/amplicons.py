@@ -2,6 +2,7 @@ import os
 import re
 import numpy as np
 import pandas as pd
+import plotly.express as px
 from app.utils.shell_cmds import shell, loginfo, logerr, stoperr
 from app.utils.utility_fns import read_fa
 from app.utils.error_handlers import error_handler_cli
@@ -31,6 +32,7 @@ class Amplicons:
 
         tsv_fname = self.bam_fname.replace(".bam", ".tsv")
         consensus_fname = self.bam_fname.replace(".bam", "_consensuses.fasta")
+        depth_fname = self.bam_fname.replace(".bam", "_depth.tsv")
 
         out = shell(f"samtools view -F 0x40 {self.bam_fname} > {tsv_fname}",
                     ret_output=True)
@@ -40,8 +42,19 @@ class Amplicons:
         '''Output consensuses. N.b. this ignores MQ so may not be high quality!'''
         out = shell(f"samtools consensus -d 1 --no-use-MQ -a {self.bam_fname} > {consensus_fname}",
                     ret_output=True)
-        error_handler_cli(out.decode("utf-8"), tsv_fname,
+        error_handler_cli(out.decode("utf-8"), consensus_fname,
                           "samtools", test_out_f=True, test_f_size=True)
+        out = shell(f"samtools depth -a {self.bam_fname} > {depth_fname}",
+                    ret_output=True)
+        error_handler_cli(out.decode("utf-8"), depth_fname,
+                          "samtools", test_out_f=True, test_f_size=True)
+        df = pd.read_csv(depth_fname, sep="\t", names=["target", "pos", "d"])
+        for tar, cnt in df["target"].value_counts().items():
+            tmp = df[df["target"] == tar]
+            fig = px.line(tmp, x="pos", y="d", title=f"Consensus coverage, {self.bam_fname.split('/')[-2]}, target {tar}", labels={
+                          "d": "Depth", "pos": "Position"})
+            fig.write_image(f"{self.bam_fname}".replace(
+                ".bam", f"_coverage_{tar}.png"))
 
         '''Read in BAM view TSV and FASTAs'''
         try:
