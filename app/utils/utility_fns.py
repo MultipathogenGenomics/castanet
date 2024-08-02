@@ -92,6 +92,8 @@ def enumerate_read_files(exp_dir, batch_name=None):
     try:
         f_full = [f"{exp_dir}/{i}" for i in os.listdir(
             exp_dir) if any(subst in i for subst in accepted_formats)]
+        # WSL2 exception
+        f_full = [i for i in f_full if not ":Zone.Identifier" in i]
     except NotADirectoryError:
         return []
     if len(f_full) == 2:
