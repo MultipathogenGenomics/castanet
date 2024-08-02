@@ -30,8 +30,15 @@ class Amplicons:
         '''Convert bam to readable TSV format and input FASTQ to FASTA'''
 
         tsv_fname = self.bam_fname.replace(".bam", ".tsv")
+        consensus_fname = self.bam_fname.replace(".bam", "_consensuses.fasta")
 
         out = shell(f"samtools view -F 0x40 {self.bam_fname} > {tsv_fname}",
+                    ret_output=True)
+        error_handler_cli(out.decode("utf-8"), tsv_fname,
+                          "samtools", test_out_f=True, test_f_size=True)
+
+        '''Output consensuses. N.b. this ignores MQ so may not be high quality!'''
+        out = shell(f"samtools consensus -d 1 --no-use-MQ -a {self.bam_fname} > {consensus_fname}",
                     ret_output=True)
         error_handler_cli(out.decode("utf-8"), tsv_fname,
                           "samtools", test_out_f=True, test_f_size=True)
