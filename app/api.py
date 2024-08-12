@@ -153,7 +153,7 @@ def do_batch(payload, start_with_bam=False):
         SeqNamesList = [i for i in SeqNamesList if not i == []]
     else:
         '''BAM only pipelines'''
-        SeqNamesList = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+        SeqNamesList = [os.path.join(dp, f) for dp, _, fn in os.walk(
             os.path.expanduser(payload["BatchName"])) for f in fn]
 
     if len(SeqNamesList) == 0:
@@ -177,7 +177,7 @@ def do_batch(payload, start_with_bam=False):
                 payload["ExpDir"] = "/".join(SeqNames.split("/")[:-1])
                 payload["ExpName"] = exp_name
             agg_analysis_csvs.append(
-                f"experiments/{payload['ExpName']}/{exp_name}_depth_with_clin.csv")
+                f"experiments/{payload['ExpName']}/{exp_name}_depth.csv")
             run_end_to_end(payload, start_with_bam)
             do_eval(payload)
         except Exception as ex:
