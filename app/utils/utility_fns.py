@@ -86,12 +86,14 @@ def trim_long_fpaths(key):
 def enumerate_read_files(exp_dir, batch_name=None):
     if not exp_dir[-1] == "/":
         exp_dir = f"{exp_dir}/"
-    accepted_formats = [".fq", ".fastq"]
+    accepted_formats = [".fq", ".fastq", ".gz"]
     if batch_name:
         exp_dir = f"{batch_name}/{exp_dir}"
     try:
         f_full = [f"{exp_dir}/{i}" for i in os.listdir(
             exp_dir) if any(subst in i for subst in accepted_formats)]
+        f_full = [i for i in f_full if any(
+            subst in f'.{i.split(".")[-1]}' for subst in accepted_formats)]
     except NotADirectoryError:
         return []
     if len(f_full) == 2:
