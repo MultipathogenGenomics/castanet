@@ -1,8 +1,9 @@
 import os
+import pickle
 from app.utils.utility_fns import enumerate_read_files
 from app.utils.shell_cmds import shell
 from app.utils.system_messages import end_sec_print
-from app.utils.shell_cmds import stoperr
+from app.utils.shell_cmds import stoperr, logerr
 from app.utils.error_handlers import error_handler_cli
 
 
@@ -21,6 +22,15 @@ def run_map(p):
         if os.stat(fn).st_size < 2:
             stoperr(
                 f"Castanet found an input file: {fn}, but it's empty. Please check your input file have been processed appropriately for input to BWA-mem2.")
+
+    '''Calculate total n trimmed reads, for later calculation of read proportions (in analysis.py)'''
+    try:
+        out = int(
+            shell(f"echo $(cat {in_files[0]}|wc -l)/4|bc", ret_output=True).decode("utf-8"))
+        pickle.dump(
+            out, open(f"{p['SaveDir']}/{p['ExpName']}/{p['ExpName']}_rawreadnum.p", "wb"))
+    except Exception as e:
+        logerr(f"Failed to calculate n trimmed reads from fastq files. Defaulting to calculating from total reads in bam.")
 
     end_sec_print(
         f"INFO: Beginning initial mapping using BWA\nThis may take a while for large files")

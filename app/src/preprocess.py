@@ -15,8 +15,11 @@ def run_kraken(p):
         '''Kill existing kraken files if present'''
         if os.path.exists(ofn):
             os.remove(ofn)
-    out = shell(
-        f'kraken2 --db {p["KrakenDbDir"]} --paired --threads {p["NThreads"]} --output {out_fnames[0]} --report {out_fnames[1]} {p["SeqNames"][0]} {p["SeqNames"][1]}', is_test=True)
+    try:
+        out = shell(
+            f'kraken2 --db {p["KrakenDbDir"]} --paired --threads {p["NThreads"]} --output {out_fnames[0]} --report {out_fnames[1]} {p["SeqNames"][0]} {p["SeqNames"][1]}', is_test=True)
+    except IndexError:
+        stoperr(f"Two input read files were not found in the direcotry you specified")
     '''Test for success'''
     error_handler_cli(out, out_fnames[1], "kraken")
     end_sec_print(f"Kraken2 annotations complete")

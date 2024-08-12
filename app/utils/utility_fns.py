@@ -99,7 +99,7 @@ def enumerate_read_files(exp_dir, batch_name=None):
     if len(f_full) == 2:
         return f_full
     else:
-        logerr(
+        stoperr(
             f"I didn't find exactly 2 .fq/.fastq[.gz] read files in folder, so I'm skipping it: {exp_dir}")
         return []
 
@@ -107,7 +107,7 @@ def enumerate_read_files(exp_dir, batch_name=None):
 def enumerate_bam_files(exp_dir):
     accepted_formats = [".bam"]
     f_full = [f"{exp_dir}/{i}" for i in os.listdir(
-        exp_dir) if any(subst in i for subst in accepted_formats)]
+        exp_dir) if any(subst in f".{i.split('.')[-1]}" for subst in accepted_formats)]
     assert len(
         f_full) == 1, f"ERROR: Please ensure there is a single .bam file in your experiment directory (ExpDir). I detected these .bam files: {f_full if not len(f_full) == 0 else 'None'}"
     return f_full[0]

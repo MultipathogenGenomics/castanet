@@ -9,7 +9,7 @@ from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
-from app.utils.basic_cli_calls import samtools_read_num
+from app.utils.basic_cli_calls import get_read_num
 from app.utils.utility_fns import trim_long_fpaths, read_fa, enumerate_bam_files
 
 
@@ -410,9 +410,7 @@ class Analysis:
                 raise FileNotFoundError(
                     f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
         else:
-            loginfo(f"Inferring raw read number from bam file")
-            read_num = samtools_read_num(
-                self.bam_fname)
+            read_num = get_read_num(self.a, self.bam_fname)
             samples = pd.DataFrame(
                 [{"sampleid": self.a["ExpName"], "pt": "", "rawreadnum": read_num}])
 
