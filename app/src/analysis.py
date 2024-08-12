@@ -9,7 +9,7 @@ from app.utils.system_messages import end_sec_print
 from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
-from app.utils.basic_cli_calls import samtools_read_num
+from app.utils.basic_cli_calls import get_read_num
 from app.utils.utility_fns import trim_long_fpaths, read_fa, enumerate_bam_files
 
 
@@ -410,9 +410,7 @@ class Analysis:
                 raise FileNotFoundError(
                     f"Couldn't open your samples file: {self.a['SamplesFile']} with exception: {ex}")
         else:
-            loginfo(f"Inferring raw read number from bam file")
-            read_num = samtools_read_num(
-                self.bam_fname)
+            read_num = get_read_num(self.a, self.bam_fname)
             samples = pd.DataFrame(
                 [{"sampleid": self.a["ExpName"], "pt": "", "rawreadnum": read_num}])
 
@@ -423,11 +421,10 @@ class Analysis:
         '''Merge read n (and clin data if supplied) to depth counts, return'''
         cdf = depth.merge(samples, on='sampleid', how='left')
         cdf['readprop'] = cdf.n_reads_all/cdf.rawreadnum
-        loginfo(f'Added the following columns: {list(samples.columns)}')
         loginfo(
-            f'Saving {self.output_dir}{self.a["ExpName"]}_depth_with_clin.csv.')
+            f'Added the following columns to depth csv: {list(samples.columns)}')
         cdf.to_csv(
-            f'{self.output_dir}{self.a["ExpName"]}_depth_with_clin.csv', index=False)
+            f'{self.output_dir}/{self.a["ExpName"]}_depth.csv', index=False)
         return cdf
 
     def save_tophits(self, depth):
@@ -444,7 +441,7 @@ class Analysis:
 
     def read_dist_piechart(self):
         df = pd.read_csv(
-            f"{self.output_dir}{self.a['ExpName']}_depth_with_clin.csv")
+            f"{self.output_dir}{self.a['ExpName']}_depth.csv")
         fig = px.pie(df, values=df["n_reads_all"], names=df["probetype"],
                      title=f"Read distribution, {self.a['ExpName']}")
         fig.update_traces(textposition='inside',
