@@ -15,3 +15,5 @@ biopython==1.81
 kaleido==0.2.1
 pyMSAviz==0.4.2
 psutil==6.0.0
+pytest==8.3.2
+pytest-cov==5.0.0
