@@ -1,5 +1,5 @@
 numpy==1.26.4
-pandas==2.2.1
+pandas==2.0.0
 matplotlib==3.7.1
 pydantic==1.10.9
 fastapi==0.97.0
@@ -17,3 +17,4 @@ pyMSAviz==0.4.2
 psutil==6.0.0
 pytest==8.3.2
 pytest-cov==5.0.0
+mock==5.1.0

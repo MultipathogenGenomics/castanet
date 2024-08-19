@@ -449,6 +449,21 @@ class Analysis:
         fig.write_image(
             f"{self.output_dir}/{self.a['ExpName']}_read_distributions.png")
 
+    def get_cov(self, row, all_cov):
+        cov = row["npos_cov_mindepth2"] / row["npos_max_probetype"]
+        if not row["sampleid"] in all_cov.keys():
+            all_cov[row["sampleid"]] = {}
+        all_cov[row["sampleid"]][row["probetype"]] = round(cov, 2)
+
+    def read_coverage_chart(self):
+        df = pd.read_csv(
+            f"{self.output_dir}{self.a['ExpName']}_depth.csv")
+        all_cov = {}
+        df.apply(lambda x: self.get_cov(x, all_cov), axis=1)
+        df_cov = pd.DataFrame(all_cov).T
+        df_cov = df_cov.reindex(sorted(df_cov.columns), axis=1)
+        df_cov.to_csv(f"{self.output_dir}{self.a['ExpName']}_coverage.csv")
+
     def main(self):
         '''Entrypoint. Extract & merge probe lengths, reassign dupes if specified, then call anlysis & save'''
         end_sec_print("INFO: Analysis started.")
@@ -459,12 +474,13 @@ class Analysis:
         depth = self.add_depth(probelengths)
         '''Merge in sample info  (including total raw reads) and participant data if specified'''
         depth = self.add_read_d_and_clin(depth)
-        self.save_tophits(depth)
+        # self.save_tophits(depth) # RM < TODO Disaled, probably not needed
         self.df = self.df.merge(
             depth, on=['sampleid', 'probetype'], how='left')
         self.df.to_csv(
             f'{self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz', index=False, compression='gzip')
         self.read_dist_piechart()
+        self.read_coverage_chart()
         loginfo(
             f'Finished. Saved final data frame as {self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz')
         end_sec_print("INFO: Analysis complete.")

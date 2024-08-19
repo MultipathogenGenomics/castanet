@@ -28,3 +28,6 @@ conda install -y bwa-mem2=2.2.1
 
 # Install viral consensus tool
 conda install -y viral_consensus=0.0.5
+
+# Install snakemake workflow manager
+conda install -y snakemake=8.18.0

@@ -23,7 +23,7 @@ from app.src.consensus import Consensus
 from app.src.analysis import Analysis
 from app.src.amplicons import Amplicons
 from app.src.post_filter import run_post_filter
-from app.utils.test_imports import import_test
+from app.utils.attempt_imports import import_test
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data, Amp_e2e_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data, Dep_check_data, Amplicon_data,
                                    Post_filter_data, Consensus_data, Eval_data, Convert_probe_data, Bam_workflow_data)
@@ -143,7 +143,7 @@ def do_batch(payload, start_with_bam=False):
     st = time.time()
     payload["BatchName"] = payload["DataFolder"]
     payload["StartTime"] = st
-    agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
+    agg_analysis_csvs = []
     errs = []
 
     if not start_with_bam:
@@ -177,7 +177,7 @@ def do_batch(payload, start_with_bam=False):
                 payload["ExpDir"] = "/".join(SeqNames.split("/")[:-1])
                 payload["ExpName"] = exp_name
             agg_analysis_csvs.append(
-                f"experiments/{payload['ExpName']}/{exp_name}_depth.csv")
+                f"{payload['SaveDir']}/{payload['ExpName']}/{payload['ExpName']}_depth.csv")
             run_end_to_end(payload, start_with_bam)
             do_eval(payload)
         except Exception as ex:
@@ -185,8 +185,8 @@ def do_batch(payload, start_with_bam=False):
             errs.append(exp_name)
             end_sec_print(
                 f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
-
-    msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
+    msg = combine_output_csvs(
+        agg_analysis_csvs,  f"{payload['SaveDir']}/{payload['BatchName'].split('/')[-1]}.csv")
     end_sec_print(msg)
     if len(errs) < 1:
         return "f***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***"

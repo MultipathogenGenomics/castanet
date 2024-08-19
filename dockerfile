@@ -16,11 +16,10 @@ RUN conda create -y -n castanet python=3.10
 RUN echo "source activate castanet" > ~/.bashrc
 ENV PATH /opt/conda/envs/castanet/bin:$PATH
 
-RUN echo "alias test='echo testy'" >> ~/.bashrc
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt --prefer-binary
 RUN bash install_deps.sh
 
-CMD ["python3", "-m", "app.api"]
+# CMD ["python3", "-m", "app.api"]
 
 # docker run --name castanet -p 8001:80
