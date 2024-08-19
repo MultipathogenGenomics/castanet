@@ -19,11 +19,11 @@ Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pi
 
 # [Documentation](https://github.com/MultipathogenGenomics/castanet/wiki)
 Castanet documentation is hosted on our [GitHub Wiki Page](https://github.com/MultipathogenGenomics/castanet/wiki)
-[<h2>Installation</h2>](https://github.com/MultipathogenGenomics/castanet/wiki/Installation)
-[<h2>Quick start</h2>](https://github.com/MultipathogenGenomics/castanet/wiki/Quickstart)
-[<h2>Usage</h2>](https://github.com/MultipathogenGenomics/castanet/wiki/Usage)
-[<h2>Output file interpretation</h2>](https://github.com/MultipathogenGenomics/castanet/wiki/Output)
-[<h2>Guide for contributors</h2>](https://github.com/MultipathogenGenomics/castanet/wiki/Contributors)
+## [Installation](https://github.com/MultipathogenGenomics/castanet/wiki/Installation)
+## [Quick start](https://github.com/MultipathogenGenomics/castanet/wiki/Quickstart)
+## [Usage](https://github.com/MultipathogenGenomics/castanet/wiki/Usage)
+## [Output file interpretation](https://github.com/MultipathogenGenomics/castanet/wiki/Output)
+## [Guide for contributors](https://github.com/MultipathogenGenomics/castanet/wiki/Contributors)
 
 
 # Castanet workflow
