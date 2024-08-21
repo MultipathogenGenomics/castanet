@@ -42,6 +42,8 @@ class Parse_bam_positions:
         id, ref, pos, ref2, tlen, cigar, seq = fields[0], fields[2], fields[3], fields[6], int(
             fields[8]), fields[5], fields[9]
 
+        with open("test.txt", "w") as f:
+            f.write(ref)
         ref_name_match = True if get_gene_orgid(
             ref2)[0] == "=" else get_gene_orgid(ref) == get_gene_orgid(ref2)
         match = tlen >= self.min_match_length

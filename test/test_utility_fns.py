@@ -107,7 +107,3 @@ def test_enumerate_bam_files():
     fs = enumerate_bam_files(fstem)
     assert fs == bam_fname
     shutil.rmtree(fstem)
-
-
-if __name__ == "__main__":
-    test_enumerate_bam_files()

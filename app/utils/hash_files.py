@@ -8,10 +8,13 @@ from app.utils.shell_cmds import stoperr
 
 def hash_me(fname):
     md5 = hashlib.md5()
-    with open(fname, 'rb') as f:
-        for chunk in iter(lambda: f.read(8192 * md5.block_size), b''):
-            md5.update(chunk)
-    return md5.digest()
+    try:
+        with open(fname, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192 * md5.block_size), b''):
+                md5.update(chunk)
+        return md5.digest()
+    except FileNotFoundError:
+        stoperr(f"Input file not found when attempting to hash")
 
 
 def check_infile_hashes(payload, exp_dir):
@@ -20,9 +23,9 @@ def check_infile_hashes(payload, exp_dir):
     existing_hashes = {}
     if os.path.exists(exp_dir):
         try:
-            for fname in payload["SeqNames"]:  # TODO CHECK THIS IS FULL PATH
+            for fname in payload["SeqNames"]:
                 existing_hashes[fname] = pickle.load(
-                    open(f"{exp_dir}/hashes/{fname}.p", "rb"))
+                    open(f"{exp_dir}/hashes/{fname.split('/')[-1]}.p", "rb"))
         except:
             stoperr(f"You're trying to run an experiment in a directory that already exists, but has no data hashes to compare against. "
                     f"This is a safety feature to stop you from overwriting data. "
@@ -37,7 +40,7 @@ def check_infile_hashes(payload, exp_dir):
 
     if len(existing_hashes) > 0:
         '''If hashes exist, compare to new ones'''
-
+        status = "Previous hashes existed, but they're identical to the new ones, meaning data versions are the same"
         for fname in existing_hashes.keys():
             if not fname in new_hashes.keys():
                 failstate = True
@@ -50,11 +53,12 @@ def check_infile_hashes(payload, exp_dir):
                     f"This is a safety feature to prevent you from overwriting experimental data. Try changing the SaveDir and re-running.")
     else:
         '''Write new hashes if none existed before'''
+        status = "No previous hashes existed, so Castanet has generated some"
         os.mkdir(f"{exp_dir}/hashes/")
         for fname in new_hashes.keys():
             pickle.dump(new_hashes[fname], open(
                 f"{exp_dir}/hashes/{fname.split('/')[-1]}.p", "wb"))
-    print(f"Completed experiment data hash check.")
+    print(f"Completed experiment data hash check ({status}).")
     return payload
 
 
