@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import pickle
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 
@@ -24,6 +25,7 @@ from app.src.analysis import Analysis
 from app.src.amplicons import Amplicons
 from app.src.post_filter import run_post_filter
 from app.utils.attempt_imports import import_test
+from app.utils.hash_files import check_infile_hashes
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data, Amp_e2e_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data, Dep_check_data, Amplicon_data,
                                    Post_filter_data, Consensus_data, Eval_data, Convert_probe_data, Bam_workflow_data)
@@ -179,6 +181,7 @@ def do_batch(payload, start_with_bam=False):
             agg_analysis_csvs.append(
                 f"{payload['SaveDir']}/{payload['ExpName']}/{payload['ExpName']}_depth.csv")
             run_end_to_end(payload, start_with_bam)
+            write_input_params(payload)
             do_eval(payload)
         except Exception as ex:
             err = error_handler_api(ex)
@@ -264,7 +267,8 @@ async def end_to_end(payload: Amp_e2e_data) -> None:
 @timing
 def run_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
+    exp_dir = f'{payload["SaveDir"]}/{payload["ExpName"]}'
+    payload = check_infile_hashes(payload, exp_dir)
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)

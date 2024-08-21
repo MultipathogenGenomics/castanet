@@ -15,7 +15,6 @@ def rm_existing_kraken(out_fnames):
 
 def run_kraken(p):
     '''Call Kraken2 to remove unwanted reads'''
-    p["SeqNames"] = enumerate_read_files(p["ExpDir"])
     out_fnames = [f'{p["SaveDir"]}/{p["ExpName"]}/{p["ExpName"]}.kraken',
                   f'{p["SaveDir"]}/{p["ExpName"]}/kraken_report.tsv']
     rm_existing_kraken(out_fnames)

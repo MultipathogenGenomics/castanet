@@ -18,11 +18,8 @@ def error_handler_filter_keep_reads(argies):
     for inpath in argies["input_file"]:
         if not os.path.isfile(inpath):
             stoperr(f'Unable to open FastQ file {inpath}.')
-        # outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
-        #     '.gz') else os.path.basename(inpath) # TODO DEPRECATED
-        # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
-        argies["o"].append(
+        argies["o"].append(  # RM < TODO TIDY FROM V1
             f'{argies["SaveDir"]}/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
         cnt += 1
     loginfo(f'Output files {argies["o"]}')
