@@ -32,6 +32,7 @@ def run_trim(p):
     else:
         '''If not trimming, just rename the filtered files to the trim output fnames'''
         logerr(f"Skipping trimming as you specified to")
+        ext = ".gz" if files['in_files'][0][-3:] == ".gz" else ""
         for idx, fi in enumerate(files['in_files']):
-            shell(f"mv {fi} {files['clean_files'][idx]}")
+            shell(f"cp {fi} {files['clean_files'][idx]}{ext}")
     end_sec_print("INFO: Read Trimming complete.")
