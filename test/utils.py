@@ -50,6 +50,6 @@ def get_default_args():
         "SamplesFile": "",
         "PostFilt": False,
         "AdaptP": "data/all_adapters.fa",
-        "NThreads": "auto",
+        "NThreads": os.cpu_count() - 1,
         "SeqNames": ["data/eval/sim_reads_1.fastq.gz", "data/eval/sim_reads_2.fastq.gz"]
     }
