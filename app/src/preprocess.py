@@ -14,7 +14,7 @@ def rm_existing_kraken(out_fnames):
 
 
 def run_kraken(p):
-    '''Call Kraken2 to remove unwanted reads'''
+    '''Call Kraken2 to label unwanted reads'''
     out_fnames = [f'{p["SaveDir"]}/{p["ExpName"]}/{p["ExpName"]}.kraken',
                   f'{p["SaveDir"]}/{p["ExpName"]}/kraken_report.tsv']
     rm_existing_kraken(out_fnames)

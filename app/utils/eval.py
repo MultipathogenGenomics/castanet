@@ -12,6 +12,8 @@ from app.utils.report_gen import GenerateReport
 
 
 class Evaluate:
+    '''RM < DEPRECATED< USED FOR ORIGINAL EVALUATION'''
+
     def __init__(self, payload) -> None:
         self.a = payload
         if not "StartTime" in self.a.keys():

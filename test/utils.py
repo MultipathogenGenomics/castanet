@@ -24,7 +24,7 @@ def get_default_args():
     return {
         "ExpDir": "./data/eval/",
         "ExpName": "test",
-        "SaveDir": "./experiments",
+        "SaveDir": "./test",
         "RefStem": "data/eval/ref.fa",
         "SingleEndedReads": False,
         "MatchLength": 40,
