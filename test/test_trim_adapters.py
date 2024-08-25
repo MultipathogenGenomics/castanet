@@ -30,6 +30,8 @@ def init_do_trim(do_trim, entry_via_pipelne):
     assert os.stat(trim_out).st_size > 2
     shutil.rmtree(fstem)
 
+# RM < TODO Test with dead input
+
 
 def test_trim_adapters_trimentry_dotrim():
     '''When just trimming is called, relies on enumerating fresh files'''
@@ -49,10 +51,3 @@ def test_trim_adapters_pipelinentry_dotrim():
 def test_trim_adapters_pipelinentry_donttrim():
     '''With prior kraken run, with trimming set to true'''
     init_do_trim(do_trim=False, entry_via_pipelne=True)
-
-
-if __name__ == "__main__":
-    test_trim_adapters_trimentry_dotrim()
-    test_trim_adapters_trimentry_donttrim()
-    test_trim_adapters_pipelinentry_dotrim()
-    test_trim_adapters_pipelinentry_donttrim()

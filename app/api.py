@@ -288,7 +288,10 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
 @timing
 def run_amp_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
+    # make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
+    exp_dir = f'{payload["SaveDir"]}/{payload["ExpName"]}'
+    payload = check_infile_hashes(payload, exp_dir)
+    write_input_params(payload)
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)

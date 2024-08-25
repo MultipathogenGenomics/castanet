@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from app.utils.get_genbank import DownloadGenBankFile
 from app.utils.shell_cmds import stoperr, logerr
 
 
@@ -56,24 +55,24 @@ def save_fa(fpath, pat):
         f.write(pat)
 
 
-def get_reference_org(gt_file, seq_name, folder_stem):
-    '''RM < TO DEPRECATE, OLD EVAL FN'''
-    gt_table = pd.read_csv(gt_file)
-    try:
-        acc_id = gt_table[gt_table["Primary_accession"] ==
-                          seq_name]["GenBank_accession"].item()
-    except Exception as ex:
-        raise ValueError(
-            f"I couldn't extract reference organism data from the ground truth table. Check your SeqName ({seq_name}) matches your Ground Truth CSV file names.\nException: {ex}")
+# def get_reference_org(gt_file, seq_name, folder_stem):
+#     '''RM < TO DEPRECATE, OLD EVAL FN'''
+#     gt_table = pd.read_csv(gt_file)
+#     try:
+#         acc_id = gt_table[gt_table["Primary_accession"] ==
+#                           seq_name]["GenBank_accession"].item()
+#     except Exception as ex:
+#         raise ValueError(
+#             f"I couldn't extract reference organism data from the ground truth table. Check your SeqName ({seq_name}) matches your Ground Truth CSV file names.\nException: {ex}")
 
-    if type(acc_id) != str:
-        print(f"WARNING: Reference has no ground truth genome sequence!")
-        return [f">NO REFERENCE AVAILABLE", "AAAAA"]
+#     if type(acc_id) != str:
+#         print(f"WARNING: Reference has no ground truth genome sequence!")
+#         return [f">NO REFERENCE AVAILABLE", "AAAAA"]
 
-    ref_gb = DownloadGenBankFile(
-        f"{folder_stem}consensus_data/GROUND_TRUTH_{seq_name}.gb", acc_id, "test@test.com")
+#     ref_gb = DownloadGenBankFile(
+#         f"{folder_stem}consensus_data/GROUND_TRUTH_{seq_name}.gb", acc_id, "test@test.com")
 
-    return [f">{acc_id}", str(ref_gb[acc_id].seq)]
+#     return [f">{acc_id}", str(ref_gb[acc_id].seq)]
 
 
 def trim_long_fpaths(key, max_len=100):

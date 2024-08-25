@@ -82,8 +82,6 @@ class Data_TrimmomaticParams(BaseModel):
 
 
 class Data_AnalysisExtras(BaseModel):
-    KeepDups: bool = Query(True,
-                           description='(OPTIONAL) If true, do not reassign duplicates to the sample with the majority in each duplicate cluster (Default: True).')
     Clin: Optional[str] = Query("",
                                 description='(OPTIONAL) Path to CSV file containing clinical data (must have at least following fields: pt, clin_int; the field "sampleid" if present will be ignored). Other fields will be ignored.')
     DepthInf: str = Query("",

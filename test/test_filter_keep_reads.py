@@ -57,9 +57,3 @@ def test_filter_keep_reads_noprefilter():
 def test_filter_keep_reads_prefilter():
     '''Should remove 1 human synthetic read from dummy data'''
     run_prefilter(prefilter=True)
-
-
-if __name__ == "__main__":
-    test_filter_keep_reads_badinput()
-    test_filter_keep_reads_noprefilter()
-    test_filter_keep_reads_prefilter()
