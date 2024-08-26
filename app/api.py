@@ -10,7 +10,7 @@ from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir, enumerate_read_files, read_fa
 from app.utils.write_logs import write_input_params
-from app.utils.eval import Evaluate
+# from app.utils.eval import Evaluate
 from app.utils.error_handlers import error_handler_api
 from app.utils.generate_probe_files import ProbeFileGen
 from app.utils.combine_batch_output import combine_output_csvs
@@ -182,7 +182,7 @@ def do_batch(payload, start_with_bam=False):
                 f"{payload['SaveDir']}/{payload['ExpName']}/{payload['ExpName']}_depth.csv")
             run_end_to_end(payload, start_with_bam)
             write_input_params(payload)
-            do_eval(payload)
+            # do_eval(payload)
         except Exception as ex:
             err = error_handler_api(ex)
             errs.append(exp_name)
@@ -197,32 +197,32 @@ def do_batch(payload, start_with_bam=False):
         return "Batch process task completed with errors. See terminal output for details."
 
 
-@app.post("/end_to_end_eval/", tags=["Dev endpoints"])
-async def end_to_end_eval(payload: E2e_eval_data) -> None:
-    try:
-        payload = process_payload(payload)
-        payload["StartTime"] = time.time()
-        end_sec_print(
-            f"INFO: Starting run, saving results to {payload['ExpName']}.")
-        msg = run_end_to_end(payload)
-        do_eval(payload)
-        return msg
-    except Exception as ex:
-        return f"Castanet run failed, please see error message and terminal for more details: {ex}"
+# @app.post("/end_to_end_eval/", tags=["Dev endpoints"])
+# async def end_to_end_eval(payload: E2e_eval_data) -> None:
+#     try:
+#         payload = process_payload(payload)
+#         payload["StartTime"] = time.time()
+#         end_sec_print(
+#             f"INFO: Starting run, saving results to {payload['ExpName']}.")
+#         msg = run_end_to_end(payload)
+#         do_eval(payload)
+#         return msg
+#     except Exception as ex:
+#         return f"Castanet run failed, please see error message and terminal for more details: {ex}"
 
 
-@app.post("/evaulate/", tags=["Dev endpoints"])
-async def evaluate(payload: Eval_data) -> None:
-    payload = process_payload(payload)
-    payload["StartTime"] = time.time()
-    end_sec_print(
-        f"INFO: Starting run evaluation.")
-    do_eval(payload)
+# @app.post("/evaulate/", tags=["Dev endpoints"])
+# async def evaluate(payload: Eval_data) -> None:
+#     payload = process_payload(payload)
+#     payload["StartTime"] = time.time()
+#     end_sec_print(
+#         f"INFO: Starting run evaluation.")
+#     do_eval(payload)
 
 
-def do_eval(payload) -> None:
-    clf = Evaluate(payload)
-    clf.main()
+# def do_eval(payload) -> None:
+#     clf = Evaluate(payload)
+#     clf.main()
 
 
 '''Consumer endpoints'''

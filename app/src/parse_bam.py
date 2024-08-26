@@ -42,8 +42,6 @@ class Parse_bam_positions:
         id, ref, pos, ref2, tlen, cigar, seq = fields[0], fields[2], fields[3], fields[6], int(
             fields[8]), fields[5], fields[9]
 
-        # with open("test.txt", "w") as f:
-        #     f.write(ref)
         ref_name_match = True if get_gene_orgid(
             ref2)[0] == "=" else get_gene_orgid(ref) == get_gene_orgid(ref2)
         match = tlen >= self.min_match_length
@@ -115,9 +113,6 @@ class Parse_bam_positions:
         with open(f"{self.argies.SaveDir}/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
-                    self.parse_bam_position(l)
-                elif self.argies.Mode == "reparse":
-                    # RM < TODO deprecate
                     self.parse_bam_position(l)
                 else:
                     self.filter_bam(l, reads_to_drop)

@@ -59,6 +59,3 @@ def test_generate_counts_fastqstart():
 def test_generate_counts_wrong_n_bams():
     '''Test with multiple BAM files in indir or none'''
     init_generate_counts(start_with_bam=True, fake_files=True)
-
-
-test_generate_counts_fastqstart()
