@@ -182,7 +182,6 @@ def do_batch(payload, start_with_bam=False):
                 f"{payload['SaveDir']}/{payload['ExpName']}/{payload['ExpName']}_depth.csv")
             run_end_to_end(payload, start_with_bam)
             write_input_params(payload)
-            # do_eval(payload)
         except Exception as ex:
             err = error_handler_api(ex)
             errs.append(exp_name)
@@ -195,34 +194,6 @@ def do_batch(payload, start_with_bam=False):
         return "f***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***"
     else:
         return "Batch process task completed with errors. See terminal output for details."
-
-
-# @app.post("/end_to_end_eval/", tags=["Dev endpoints"])
-# async def end_to_end_eval(payload: E2e_eval_data) -> None:
-#     try:
-#         payload = process_payload(payload)
-#         payload["StartTime"] = time.time()
-#         end_sec_print(
-#             f"INFO: Starting run, saving results to {payload['ExpName']}.")
-#         msg = run_end_to_end(payload)
-#         do_eval(payload)
-#         return msg
-#     except Exception as ex:
-#         return f"Castanet run failed, please see error message and terminal for more details: {ex}"
-
-
-# @app.post("/evaulate/", tags=["Dev endpoints"])
-# async def evaluate(payload: Eval_data) -> None:
-#     payload = process_payload(payload)
-#     payload["StartTime"] = time.time()
-#     end_sec_print(
-#         f"INFO: Starting run evaluation.")
-#     do_eval(payload)
-
-
-# def do_eval(payload) -> None:
-#     clf = Evaluate(payload)
-#     clf.main()
 
 
 '''Consumer endpoints'''
@@ -288,7 +259,6 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
 @timing
 def run_amp_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    # make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
     exp_dir = f'{payload["SaveDir"]}/{payload["ExpName"]}'
     payload = check_infile_hashes(payload, exp_dir)
     write_input_params(payload)

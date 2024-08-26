@@ -34,8 +34,9 @@ Dotted lines indicate optional pipeline stages.
 # Changelog
 ## Version 7, 19/08/24
 1. Docker support
-1. PyTest suite
+1. PyTest suite (80% cov)
 1. Wiki creation
+1. Deprecated original CLI and eval tools (supplanted by current version)
 
 ## Version 6, 02/07/24
 1. Castanet "lite" - simplified CLI added
