@@ -8,6 +8,7 @@ EXPOSE 80
 COPY ./app /workspace/app
 COPY ./install_deps.sh /workspace/
 COPY ./requirements.txt /workspace/
+COPY ./data/eval /workspace/data/eval
 
 WORKDIR /workspace
 RUN mkdir /logs

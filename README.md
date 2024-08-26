@@ -13,9 +13,13 @@ O       o O       o O       o O       o O
 o       O o       O o       O O       O o
 ```
 
-Forked from https://github.com/tgolubch/castanet
-
 Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pipeline for rapid analysis of targeted multi-pathogen genomic data (Preprint) https://doi.org/10.1101/2024.06.28.601013.
+
+# New features with Version 7
+* New expanded readme on our Wiki
+* Enhanced stand-alone CLI (see [Quick start](https://github.com/MultipathogenGenomics/castanet/wiki/Quickstart))
+* Try our new Docker container with DockerHub (see [Advanced usage options](https://github.com/MultipathogenGenomics/castanet/wiki/Advanced))
+* PyTest suite with 80% coverage
 
 # [Documentation](https://github.com/MultipathogenGenomics/castanet/wiki)
 Castanet documentation is hosted on our [GitHub Wiki Page](https://github.com/MultipathogenGenomics/castanet/wiki)
@@ -23,6 +27,7 @@ Castanet documentation is hosted on our [GitHub Wiki Page](https://github.com/Mu
 ## [Quick start](https://github.com/MultipathogenGenomics/castanet/wiki/Quickstart)
 ## [Usage](https://github.com/MultipathogenGenomics/castanet/wiki/Usage)
 ## [Output file interpretation](https://github.com/MultipathogenGenomics/castanet/wiki/Output)
+## [Advanced usage options](https://github.com/MultipathogenGenomics/castanet/wiki/Advanced)
 ## [Guide for contributors](https://github.com/MultipathogenGenomics/castanet/wiki/Contributors)
 
 

@@ -15,9 +15,9 @@ conda install -y -c bioconda mafft=7.520
 conda install -y -c bioconda mash
 
 # # Download pre-built kraken2 database with human genome only
-mkdir kraken2_human_db # RM < TODO TEMP DISABLED
-# curl -L -o kraken2_human_db/kraken2_human_db.tar.gz https://ndownloader.figshare.com/files/23567780
-# tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
+mkdir kraken2_human_db
+curl -L -o kraken2_human_db/kraken2_human_db.tar.gz https://ndownloader.figshare.com/files/23567780
+tar -xzvf kraken2_human_db/kraken2_human_db.tar.gz
 
 # Download trimmomatic and extract
 # rm Trimmomatic-0.39.zip
