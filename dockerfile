@@ -9,6 +9,7 @@ COPY ./app /workspace/app
 COPY ./install_deps.sh /workspace/
 COPY ./requirements.txt /workspace/
 COPY ./data/eval /workspace/data/eval
+COPY ./data/ncbi_lineages_2023-06-15.csv.gz /workspace/data/ncbi_lineages_2023-06-15.csv.gz
 
 WORKDIR /workspace
 RUN mkdir /logs
