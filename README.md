@@ -1,4 +1,4 @@
-```
+<!-- ```
  _____           _                   _
 /  __ \         | |                 | |
 | /  \/ __ _ ___| |_ __ _ _ __   ___| |_
@@ -11,14 +11,16 @@ O       o O       o O       o O       o O
 | | O | | | | O | | | | O | | | | O | | |
 | o   O | | o   O | | o   O | | o   O | |
 o       O o       O o       O O       O o
-```
-
+``` -->
+<p align="center">
+<img src="docs/output3b.jpg" alt="drawing" width="600"/>
+</p>
 Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pipeline for rapid analysis of targeted multi-pathogen genomic data (Preprint) https://doi.org/10.1101/2024.06.28.601013.
 
 # New features with Version 7
 * New expanded readme on our Wiki
 * Enhanced stand-alone CLI (see [Quick start](https://github.com/MultipathogenGenomics/castanet/wiki/Quickstart))
-* Try our new Docker container with DockerHub (see [Advanced usage options](https://github.com/MultipathogenGenomics/castanet/wiki/Advanced))
+* <a href="https://hub.docker.com/r/mayne941/castanet"><img src="docs/docker-mark-blue.png" alt="drawing" width="25" /> Try our new Docker container with DockerHub</a> (see [Advanced usage options](https://github.com/MultipathogenGenomics/castanet/wiki/Advanced) for guidance)
 * PyTest suite with 80% coverage
 
 # [Documentation](https://github.com/MultipathogenGenomics/castanet/wiki)
