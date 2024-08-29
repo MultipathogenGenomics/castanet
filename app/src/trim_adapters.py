@@ -5,8 +5,7 @@ from app.utils.system_messages import end_sec_print
 from app.utils.error_handlers import error_handler_cli
 
 
-# def run_trim(p, trim_path='java -jar ./Trimmomatic-0.39/trimmomatic-0.39.jar'): # RM < TODO test after switching to bioconda install
-def run_trim(p, trim_path='trimmomatic'):
+def run_trim(p):
     '''Call Trimmomatic trim CLI tool; check it worked; remove interim files'''
     p["ExpDir"] = f"{p['ExpDir']}/"
     CLEAN_UP = True
@@ -22,7 +21,7 @@ def run_trim(p, trim_path='trimmomatic'):
 
     if p["DoTrimming"]:
         end_sec_print("INFO: Read Trimming beginning.")
-        out = shell(f"{trim_path} PE -threads {p['NThreads']} {files['in_files'][0]} {files['in_files'][1]} {files['clean_files'][0]} {files['trim_files'][0]} {files['clean_files'][1]} {files['trim_files'][1]} ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}", is_test=True)
+        out = shell(f"trimmomatic PE -threads {p['NThreads']} {files['in_files'][0]} {files['in_files'][1]} {files['clean_files'][0]} {files['trim_files'][0]} {files['clean_files'][1]} {files['trim_files'][1]} ILLUMINACLIP:{p['AdaptP']}:2:10:7:1:true MINLEN:{p['TrimMinLen']}", is_test=True)
         error_handler_cli(out, files['clean_files']
                           [0], "trimmomatic", test_f_size=True)
 
@@ -33,6 +32,7 @@ def run_trim(p, trim_path='trimmomatic'):
     else:
         '''If not trimming, just rename the filtered files to the trim output fnames'''
         logerr(f"Skipping trimming as you specified to")
+        ext = ".gz" if files['in_files'][0][-3:] == ".gz" else ""
         for idx, fi in enumerate(files['in_files']):
-            shell(f"mv {fi} {files['clean_files'][idx]}")
+            shell(f"cp {fi} {files['clean_files'][idx]}{ext}")
     end_sec_print("INFO: Read Trimming complete.")

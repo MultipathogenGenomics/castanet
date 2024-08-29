@@ -18,11 +18,8 @@ def error_handler_filter_keep_reads(argies):
     for inpath in argies["input_file"]:
         if not os.path.isfile(inpath):
             stoperr(f'Unable to open FastQ file {inpath}.')
-        # outstem = os.path.basename(inpath.split('.gz')[0]) if inpath.endswith(
-        #     '.gz') else os.path.basename(inpath) # TODO DEPRECATED
-        # outpath = f'experiments/{argies["ExpName"]}/{os.path.splitext(outstem)[0]}_filt.fastq'
         '''Append suffix "filt" to output file'''
-        argies["o"].append(
+        argies["o"].append(  # RM < TODO TIDY FROM V1
             f'{argies["SaveDir"]}/{argies["ExpName"]}/{argies["ExpName"]}_{cnt}_filt.fastq')
         cnt += 1
     loginfo(f'Output files {argies["o"]}')
@@ -167,7 +164,7 @@ def error_handler_cli(out, out_fname, tool, test_out_f=True, test_f_size=False):
     if "command not found" in out.lower() or "segmentation fault" in out.lower() or not cli_specific_errs["healthy_msg"] in out.lower():
         if out == "" and test_f_size:
             # Don't fail here as it represents casting to an out file, which would have no response
-            ...
+            ...  # RM <TODO tidy this messy logic
         else:
             stoperr(f"{tool} doesn't seem to be installed or threw an error not recognised by the Castanet test suite. Please check the Castanet readme for installation instructions. {default_guidance}"
                     f"{tool} output: {out}")

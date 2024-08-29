@@ -41,7 +41,7 @@ def stoperr(s, errcode=1):
 
 
 def read_line(h):
-    '''Parse line from input file'''
+    '''Parse line from input file, using POpen'''
     return h.readline().decode("utf-8")
 
 

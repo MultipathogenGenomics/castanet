@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from app.utils.get_genbank import DownloadGenBankFile
 from app.utils.shell_cmds import stoperr, logerr
 
 
@@ -13,7 +12,7 @@ def make_exp_dir(ExpNameAndRoot):
 def get_gene_orgid(target_id):
     '''Find gene and orgid at specific ref; return (gene, orgid).'''
     parts = target_id.split('_')
-    orgid = parts[-1] if parts[0].startswith('BACT') else parts[0]
+    orgid = parts[-1] if parts[0].lower().startswith('bact') else parts[0]
     return (parts[0], orgid)
 
 
@@ -56,29 +55,30 @@ def save_fa(fpath, pat):
         f.write(pat)
 
 
-def get_reference_org(gt_file, seq_name, folder_stem):
-    gt_table = pd.read_csv(gt_file)
-    try:
-        acc_id = gt_table[gt_table["Primary_accession"] ==
-                          seq_name]["GenBank_accession"].item()
-    except Exception as ex:
-        raise ValueError(
-            f"I couldn't extract reference organism data from the ground truth table. Check your SeqName ({seq_name}) matches your Ground Truth CSV file names.\nException: {ex}")
+# def get_reference_org(gt_file, seq_name, folder_stem):
+#     '''RM < TO DEPRECATE, OLD EVAL FN'''
+#     gt_table = pd.read_csv(gt_file)
+#     try:
+#         acc_id = gt_table[gt_table["Primary_accession"] ==
+#                           seq_name]["GenBank_accession"].item()
+#     except Exception as ex:
+#         raise ValueError(
+#             f"I couldn't extract reference organism data from the ground truth table. Check your SeqName ({seq_name}) matches your Ground Truth CSV file names.\nException: {ex}")
 
-    if type(acc_id) != str:
-        print(f"WARNING: Reference has no ground truth genome sequence!")
-        return [f">NO REFERENCE AVAILABLE", "AAAAA"]
+#     if type(acc_id) != str:
+#         print(f"WARNING: Reference has no ground truth genome sequence!")
+#         return [f">NO REFERENCE AVAILABLE", "AAAAA"]
 
-    ref_gb = DownloadGenBankFile(
-        f"{folder_stem}consensus_data/GROUND_TRUTH_{seq_name}.gb", acc_id, "test@test.com")
+#     ref_gb = DownloadGenBankFile(
+#         f"{folder_stem}consensus_data/GROUND_TRUTH_{seq_name}.gb", acc_id, "test@test.com")
 
-    return [f">{acc_id}", str(ref_gb[acc_id].seq)]
+#     return [f">{acc_id}", str(ref_gb[acc_id].seq)]
 
 
-def trim_long_fpaths(key):
+def trim_long_fpaths(key, max_len=100):
     '''Curtail very long probe names that can't be used as folder names'''
-    if len(key) > 100:
-        return key[0:100]
+    if len(key) > max_len:
+        return key[0:max_len]
     else:
         return key
 
@@ -94,14 +94,14 @@ def enumerate_read_files(exp_dir, batch_name=None):
             exp_dir) if any(subst in i for subst in accepted_formats)]
         f_full = [i for i in f_full if any(
             subst in f'.{i.split(".")[-1]}' for subst in accepted_formats)]
-    except NotADirectoryError:
-        return []
+    except FileNotFoundError:
+        stoperr(
+            f"The directory you specified to look for files doesn't exist, check your ExpDir and re-run.")
     if len(f_full) == 2:
         return f_full
     else:
-        stoperr(
-            f"I didn't find exactly 2 .fq/.fastq[.gz] read files in folder, so I'm skipping it: {exp_dir}")
-        return []
+        raise stoperr(
+            f"I didn't find exactly 2 .fq/.fastq[.gz] read files in folder (ExpDir), so I'm skipping it: {exp_dir}")
 
 
 def enumerate_bam_files(exp_dir):

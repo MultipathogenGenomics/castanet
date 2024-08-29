@@ -8,7 +8,7 @@ import plotly.express as px
 
 from app.utils.timer import timing
 from app.utils.shell_cmds import shell, make_dir, loginfo, stoperr
-from app.utils.utility_fns import read_fa, save_fa, get_reference_org
+from app.utils.utility_fns import read_fa, save_fa
 from app.utils.fnames import get_consensus_fnames
 from app.utils.system_messages import end_sec_print
 from app.utils.basic_cli_calls import (
@@ -180,7 +180,7 @@ class Consensus:
         '''Return flat consensus'''
         return self.dumb_consensus(f"{self.a['folder_stem']}consensus_data/{org_name}/", org_name)
 
-    @timing
+    # @timing
     def dumb_consensus_deprecated(self, aln, org_name) -> str:
         '''DEPRECATED. Constrcut flat consensus to no reference'''
         aln = np.array([list(i[1]) for i in read_fa(
@@ -192,7 +192,7 @@ class Consensus:
 
         return cons
 
-    @timing
+    # @timing
     def dumb_consensus(self, alnfpath, org_name) -> list:
         '''Produce an un-referenced/`flat` consensus sequence for file of target and target ref seqs'''
         def base_cons(s):
@@ -267,7 +267,7 @@ class Consensus:
             '''Not done in loop and in reverse to not break the iterator'''
             del self.target_consensuses[org_name][i]
 
-    @timing
+    # @timing
     def remap_flat_consensus(self, org_name) -> None:
         '''Remap reads to flattened consensus, save, call stats, remove raw fastas'''
         bwa_index(
@@ -285,34 +285,6 @@ class Consensus:
             stoperr(f"Castanet call to ViralConsensus produced empty output. Check that it's installed using the dependency_check endpoint (see readme)")
         find_and_delete(
             f"{self.a['folder_stem']}consensus_data/{org_name}/", f"*.fasta.*")
-
-    @timing
-    def call_ref_corrected_consensus(self, tar_name) -> None:
-        '''Construct a `conventional` consensus from grouped reads, with reference to a complete reference genome'''
-        '''Load grouped aligned first consensus seqs to retrieve each target name'''
-        if error_handler_consensus_ref_corrected(self.a, tar_name):
-            return
-
-        '''Set dynamic fnames, make folders'''
-        ref_adj_cons_fname = f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_ref_adjusted_consensus.fasta"
-        outcounts_fname = f"{self.a['folder_stem']}consensus_data/{tar_name}/{tar_name}_refadjconsensus_pos_counts.tsv"
-        shell(f"mkdir {self.fnames['temp_folder']}")
-
-        '''Retrieve GT seq'''
-        ref_seq = get_reference_org(
-            self.a['GtFile'], self.a["ExpName"], self.a['folder_stem'])
-
-        '''Save ref seq and index, then run bwa mem of ref seq vs contigs'''
-        loginfo(
-            f"generating reference-adjusted consensus for target group / reference: {tar_name} / {ref_seq[0]}")
-        save_fa(f"{self.fnames['temp_ref_seq']}",
-                f">{ref_seq[0]}\n{ref_seq[1]}\n")
-        bwa_index(f"{self.fnames['temp_ref_seq']}")
-
-        '''Run alignment and flatten consensus'''
-        shell(f"samtools fastq {self.a['folder_stem']}consensus_data/{tar_name}/collated_reads.bam | "
-              f"bwa-mem2 mem {self.fnames['temp_ref_seq']} - -t {self.a['NThreads']} | viral_consensus -i - -r {self.fnames['temp_ref_seq']} -o {ref_adj_cons_fname} --out_pos_counts {outcounts_fname}")
-        self.fix_terminal_gaps(outcounts_fname, ref_adj_cons_fname)
 
     def fix_terminal_gaps(self, in_fname, out_fname) -> None:
         '''Trim terminal gaps'''
@@ -406,8 +378,6 @@ class Consensus:
             f"{self.a['folder_stem']}/grouped_reads/")]
         [self.call_flat_consensus(i) for i in self.target_consensuses.keys()]
         self.clean_incomplete_consensus()
-        [self.call_ref_corrected_consensus(tar_name)
-            for tar_name in self.target_consensuses.keys()]
 
         '''Tidy up'''
         self.tidy()

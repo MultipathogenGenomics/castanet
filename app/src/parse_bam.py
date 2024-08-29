@@ -3,8 +3,8 @@ import sys
 import re
 import pandas as pd
 
-from app.utils.argparsers import parse_args_bam_parse
 from app.utils.error_handlers import error_handler_parse_bam_positions
+from app.utils.argparsers import parse_args_bam_parse
 from app.utils.shell_cmds import make_dir
 from app.utils.utility_fns import get_gene_orgid, trim_long_fpaths
 
@@ -113,9 +113,6 @@ class Parse_bam_positions:
         with open(f"{self.argies.SaveDir}/{self.argies.ExpName}/{self.argies.ExpName}_bamview.txt") as f:
             for l in f:
                 if self.argies.Mode == "parse":
-                    self.parse_bam_position(l)
-                elif self.argies.Mode == "reparse":
-                    # RM < TODO deprecate
                     self.parse_bam_position(l)
                 else:
                     self.filter_bam(l, reads_to_drop)

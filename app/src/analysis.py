@@ -6,7 +6,6 @@ import pandas as pd
 import plotly.express as px
 
 from app.utils.system_messages import end_sec_print
-from app.utils.argparsers import parse_args_analysis
 from app.utils.shell_cmds import loginfo, stoperr, logerr, shell
 from app.utils.error_handlers import error_handler_analysis
 from app.utils.basic_cli_calls import get_read_num
@@ -157,46 +156,6 @@ class Analysis:
                 f"Failure decoding the name of one or more probe types: \n {pdf[pdf['probetype'] == '']} \n Please check your probe naming conventions are compatible with Castanet")
         return pdf
 
-    def reassign_dups(self):
-        ''' Reassign positional duplicates (reads with same start/end) to the sample with the highest count.
-        This should NOT be used with unique dual indexed samples, as relies on heavily oversequenced data.
-        Regardless may be useful to clean contaminated data.'''
-        loginfo('Reassaigning duplicates.')
-        ttl_prededup_mapped_reads = self.df.groupby('sampleid').n.sum()
-        grouped_prededup_mapped_reads = self.df.groupby(
-            ['sampleid', 'probetype']).n.sum().unstack().fillna(0)
-        self.df.sort_values(
-            ['target_id', 'startpos', 'maplen', 'n'], ascending=True, inplace=True)
-        self.df['n'] = self.df.groupby(
-            ['target_id', 'startpos', 'maplen']).n.cumsum()
-        nrows0 = len(self.df)
-        duprows = self.df.duplicated(
-            ['target_id', 'startpos', 'maplen'], keep='last')
-        loginfo(f'Saving {self.a["ExpName"]}_reads_to_drop.csv')
-        self.df[duprows][['sampleid', 'target_id', 'startpos', 'maplen']].to_csv(
-            f'{self.a["ExpDir"]}/{self.a["ExpName"]}_reads_to_drop.csv', index=False)
-        self.df = self.df[~duprows]
-        loginfo(
-            f'Kept {len(self.df)} of {nrows0} rows ({float(len(self.df))/nrows0}).')
-        ttl_dup_mapped_reads = self.df.groupby('sampleid').n.sum()
-        grouped_dup_mapped_reads = self.df.groupby(
-            ['sampleid', 'probetype']).n.sum().unstack().fillna(0)
-        try:
-            assert ttl_dup_mapped_reads.sum() == ttl_prededup_mapped_reads.sum()
-        except AssertionError:
-            stoperr(
-                'Total reads after duplicate reassignment does not match starting total.')
-        duprate_ttl = ttl_dup_mapped_reads/ttl_prededup_mapped_reads
-        duprate_by_probetype = grouped_dup_mapped_reads/grouped_prededup_mapped_reads
-        loginfo(
-            f'Saving {self.a["ExpName"]}_duprate.csv and {self.a["ExpName"]}_duprate_by_probetype.csv.')
-        duprate_ttl.to_csv(
-            f'{self.a["ExpDir"]}/{self.a["ExpName"]}_duprate.csv', header=True)
-        duprate_by_probetype.to_csv(
-            f'{self.a["ExpDir"]}/{self.a["ExpName"]}_duprate_by_probetype.csv')
-        loginfo(f'Duplication rate: \n{duprate_ttl.describe().to_string()}')
-        return
-
     def add_depth(self, probelengths):
         ''' Calculate read depth per position. '''
         if self.a["DepthInf"]:
@@ -283,7 +242,7 @@ class Analysis:
                     o.write('\n')
 
                 '''Save array plots as pdf if significant'''
-                if D1.mean() >= 0.1:
+                if D1.mean() >= 0.01:  # RM < TODO Parameterise to be more sensitive on amplicon PL.
                     plot_df = pd.DataFrame()
                     plot_df["position"], plot_df["All Reads"], plot_df["Deduplicated Reads"] = np.arange(
                         0, D.shape[0]), D, D1
@@ -396,10 +355,10 @@ class Analysis:
             samples = samples.merge(clin, on='pt', how='left')
         return samples
 
-    def add_read_d_and_clin(self, depth, req_cols_samples=['sampleid', 'pt', 'rawreadnum']):
+    def add_read_d_and_clin(self, depth):
         ''' Add raw read numbers and any external categorical/clinical data.
         If specified, samples file must supply at least the following columns: {}.
-        If not specified, infer raw read num from input bam (assumes no prior filtering!!)'''.format(req_cols_samples)
+        If not specified, infer raw read num from input bam (assumes no prior filtering!!)'''
         loginfo('Adding sample information and clinical data.')
         if self.a["SamplesFile"] != "":
             loginfo(
@@ -449,29 +408,35 @@ class Analysis:
         fig.write_image(
             f"{self.output_dir}/{self.a['ExpName']}_read_distributions.png")
 
+    def get_cov(self, row, all_cov):
+        cov = row["npos_cov_mindepth2"] / row["npos_max_probetype"]
+        if not row["sampleid"] in all_cov.keys():
+            all_cov[row["sampleid"]] = {}
+        all_cov[row["sampleid"]][row["probetype"]] = round(cov, 2)
+
+    def read_coverage_chart(self):
+        df = pd.read_csv(
+            f"{self.output_dir}{self.a['ExpName']}_depth.csv")
+        all_cov = {}
+        df.apply(lambda x: self.get_cov(x, all_cov), axis=1)
+        df_cov = pd.DataFrame(all_cov).T
+        df_cov = df_cov.reindex(sorted(df_cov.columns), axis=1)
+        df_cov.to_csv(f"{self.output_dir}{self.a['ExpName']}_coverage.csv")
+
     def main(self):
         '''Entrypoint. Extract & merge probe lengths, reassign dupes if specified, then call anlysis & save'''
         end_sec_print("INFO: Analysis started.")
         probelengths = self.add_probelength()
-        if not self.a["KeepDups"]:
-            self.reassign_dups()
         '''Depth calculation'''
         depth = self.add_depth(probelengths)
         '''Merge in sample info  (including total raw reads) and participant data if specified'''
         depth = self.add_read_d_and_clin(depth)
-        self.save_tophits(depth)
         self.df = self.df.merge(
             depth, on=['sampleid', 'probetype'], how='left')
         self.df.to_csv(
             f'{self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz', index=False, compression='gzip')
         self.read_dist_piechart()
+        self.read_coverage_chart()
         loginfo(
             f'Finished. Saved final data frame as {self.output_dir}/{self.a["ExpName"]}_fullself.df.csv.gz')
         end_sec_print("INFO: Analysis complete.")
-
-
-if __name__ == '__main__':
-    '''CLI entry'''
-    cls = Analysis(parse_args_analysis(), api_entry=False)
-    cls.main()
-    end_sec_print("INFO: Analysis complete.")

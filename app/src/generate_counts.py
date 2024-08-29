@@ -13,7 +13,12 @@ def run_counts(p, start_with_bam=False):
     in_file = f"{p['SaveDir']}/{p['ExpName']}/{p['ExpName']}.bam"
     if start_with_bam:
         '''Only for start_with_bam, which uses a different infile config'''
-        bam_files = [i for i in os.listdir(p['ExpDir']) if i[-4:] == ".bam"]
+        try:
+            bam_files = [i for i in os.listdir(
+                p['ExpDir']) if i[-4:] == ".bam"]
+        except FileNotFoundError:
+            stoperr(
+                f"Your input directory containing your BAM file (ExpDir) doesn't exist!")
         if len(bam_files) != 1:
             stoperr(
                 f"Castanet expected your input directory ({p['ExpDir']}) to have exactly 1 bam file, but it has {len(bam_files)}")
@@ -30,7 +35,7 @@ def run_counts(p, start_with_bam=False):
 
     '''Split samtools pipe to python with persistent file for ease of debugging'''
     end_sec_print("Info: Generating read counts ")
-    # Included for error handler test as successful call prints nowt
+    '''Included blank call to SAMtools for error handler, as successful call prints nowt'''
     out = shell(f"samtools", is_test=True)
     shell(f"""samtools view -F2048 -F4 {in_file} > {bamview_fname}""")
     error_handler_cli(out, bamview_fname, "samtools")

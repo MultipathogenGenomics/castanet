@@ -4,7 +4,6 @@ import subprocess as sp
 from collections import deque
 
 from app.utils.shell_cmds import loginfo, read_line, shell, logerr
-from app.utils.argparsers import parse_args_filter_keep_reads
 from app.utils.error_handlers import error_handler_filter_keep_reads
 from app.utils.system_messages import end_sec_print
 from app.utils.utility_fns import enumerate_read_files
@@ -93,9 +92,3 @@ class FilterKeepReads:
         shell(
             f"rm {self.a['SaveDir']}/{self.a['ExpName']}/{self.a['ExpName']}.kraken")
         end_sec_print("INFO: Filter reads complete.")
-
-
-if __name__ == '__main__':
-    '''CLI entry'''
-    cls = FilterKeepReads(parse_args_filter_keep_reads(), api_entry=False)
-    cls.main()

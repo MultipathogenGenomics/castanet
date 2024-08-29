@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import pickle
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 
@@ -9,7 +10,7 @@ from app.utils.timer import timing
 from app.utils.system_messages import banner, end_sec_print
 from app.utils.utility_fns import make_exp_dir, enumerate_read_files, read_fa
 from app.utils.write_logs import write_input_params
-from app.utils.eval import Evaluate
+# from app.utils.eval import Evaluate
 from app.utils.error_handlers import error_handler_api
 from app.utils.generate_probe_files import ProbeFileGen
 from app.utils.combine_batch_output import combine_output_csvs
@@ -23,7 +24,8 @@ from app.src.consensus import Consensus
 from app.src.analysis import Analysis
 from app.src.amplicons import Amplicons
 from app.src.post_filter import run_post_filter
-from app.utils.test_imports import import_test
+from app.utils.attempt_imports import import_test
+from app.utils.hash_files import check_infile_hashes
 from app.utils.api_classes import (Batch_eval_data, E2e_eval_data, E2e_data, Preprocess_data, Filter_keep_reads_data, Amp_e2e_data,
                                    Trim_data, Mapping_data, Count_map_data, Analysis_data, Dep_check_data, Amplicon_data,
                                    Post_filter_data, Consensus_data, Eval_data, Convert_probe_data, Bam_workflow_data)
@@ -143,7 +145,7 @@ def do_batch(payload, start_with_bam=False):
     st = time.time()
     payload["BatchName"] = payload["DataFolder"]
     payload["StartTime"] = st
-    agg_analysis_csvs, agg_analysis_name = [], f'{payload["ExpName"]}.csv'
+    agg_analysis_csvs = []
     errs = []
 
     if not start_with_bam:
@@ -177,49 +179,21 @@ def do_batch(payload, start_with_bam=False):
                 payload["ExpDir"] = "/".join(SeqNames.split("/")[:-1])
                 payload["ExpName"] = exp_name
             agg_analysis_csvs.append(
-                f"experiments/{payload['ExpName']}/{exp_name}_depth.csv")
+                f"{payload['SaveDir']}/{payload['ExpName']}/{payload['ExpName']}_depth.csv")
             run_end_to_end(payload, start_with_bam)
-            do_eval(payload)
+            write_input_params(payload)
         except Exception as ex:
             err = error_handler_api(ex)
             errs.append(exp_name)
             end_sec_print(
                 f"REGISTERED ERROR {exp_name} WITH EXCEPTION: {err}")
-
-    msg = combine_output_csvs(agg_analysis_csvs, agg_analysis_name)
+    msg = combine_output_csvs(
+        agg_analysis_csvs,  f"{payload['SaveDir']}/{payload['BatchName'].split('/')[-1]}.csv")
     end_sec_print(msg)
     if len(errs) < 1:
         return "f***\nBatch complete. Time to complete: {time.time() - st} ({(time.time() - st)/len(SeqNames)} per sample)\n{msg}\nFailed to process following samples: {errs}***"
     else:
         return "Batch process task completed with errors. See terminal output for details."
-
-
-@app.post("/end_to_end_eval/", tags=["Dev endpoints"])
-async def end_to_end_eval(payload: E2e_eval_data) -> None:
-    try:
-        payload = process_payload(payload)
-        payload["StartTime"] = time.time()
-        end_sec_print(
-            f"INFO: Starting run, saving results to {payload['ExpName']}.")
-        msg = run_end_to_end(payload)
-        do_eval(payload)
-        return msg
-    except Exception as ex:
-        return f"Castanet run failed, please see error message and terminal for more details: {ex}"
-
-
-@app.post("/evaulate/", tags=["Dev endpoints"])
-async def evaluate(payload: Eval_data) -> None:
-    payload = process_payload(payload)
-    payload["StartTime"] = time.time()
-    end_sec_print(
-        f"INFO: Starting run evaluation.")
-    do_eval(payload)
-
-
-def do_eval(payload) -> None:
-    clf = Evaluate(payload)
-    clf.main()
 
 
 '''Consumer endpoints'''
@@ -264,7 +238,9 @@ async def end_to_end(payload: Amp_e2e_data) -> None:
 @timing
 def run_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
+    exp_dir = f'{payload["SaveDir"]}/{payload["ExpName"]}'
+    payload = check_infile_hashes(payload, exp_dir)
+    write_input_params(payload)
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)
@@ -283,7 +259,9 @@ def run_end_to_end(payload, start_with_bam=False) -> str:
 @timing
 def run_amp_end_to_end(payload, start_with_bam=False) -> str:
     end_sec_print(f"INFO: Starting run, experiment: {payload['ExpName']}")
-    make_exp_dir(f'{payload["SaveDir"]}/{payload["ExpName"]}')
+    exp_dir = f'{payload["SaveDir"]}/{payload["ExpName"]}'
+    payload = check_infile_hashes(payload, exp_dir)
+    write_input_params(payload)
     if not start_with_bam:
         if payload["DoKrakenPrefilter"]:
             run_kraken(payload)
