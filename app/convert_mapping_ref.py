@@ -23,7 +23,7 @@ def populate_request(payload, parser):
 def tests(payload):
     '''KrakenDbDir'''
     if not os.path.isfile(payload['InFile']):
-        stoperr(f"Your KrakenDbDir doesn't seem to exist. Check spelling and path.")
+        stoperr(f"Your InFile doesn't seem to exist. Check spelling and path.")
 
 
 def main():
