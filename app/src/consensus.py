@@ -300,7 +300,7 @@ class Consensus:
                 return ('', np.nan)
 
             try:
-                just_measured_bases = s[-int(len(s))                                        :].lower().replace("-", "").replace("n", "")
+                just_measured_bases = s[-int(len(s)):].lower().replace("-", "").replace("n", "")
                 consbase, consnum = Counter(
                     just_measured_bases).most_common()[0]
 
@@ -502,8 +502,8 @@ class Consensus:
                 df = pd.concat([df, c_stats], axis=0, ignore_index=True)
                 df.to_csv(dfpath)
             except FileNotFoundError:
-                logerr(f"Couldn't find supplementary stats for {org}, skipping addition of remapped read count to summary csv."
-                       f"This can happen if individual pipeline stages are run out-of-synch with each other, or if you're generating a consensus with horizontal (rMLST) aggregation.")
+                logerr(
+                    f"Couldn't find supplementary stats for {org}, skipping addition of remapped read count to summary csv. This can happen if individual pipeline stages are run out-of-synch with each other, or if you're generating a consensus with horizontal (rMLST) aggregation.")
 
             if self.a["DebugMode"]:
                 '''Plot consensus coverage'''

@@ -21,7 +21,8 @@ Described in Mayne, R., Secret., S., Geoghegan, C., et al. (2024) Castanet: a pi
 
 # New in V9.3
 1. Aggregation to rMLST genes has been re-implemented using the new mapping reference table scheme. See Wiki for more details.
-1. Explicit error handling added to consensus generator, including feedback from CLI tools
+1. Explicit error handling added to several pipeline stages. This will now provide users with feedback from CLI tool calls as well as Castanet.
+1. Mapping ref table converter now has option to fix mapping ref files of common errors.
 1. Bug fixes:
     * Mafft version pinned to 7.505 to avoid segfaults in some edge cases
     * Removed unnecesasry double filtering in postfilt function
