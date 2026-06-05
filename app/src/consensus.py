@@ -55,7 +55,14 @@ class Consensus:
         '''Filter bam to specific target, call consensus sequence for sam alignment records, grouped by target'''
         try:
             '''Don't give the user the hashed header name, it will only upset them'''
-            sneaky_name = f'{tar_name.split("_")[0]}_{self.lut[self.lut["key"] == tar_name.split("_")[-1]]["description"].item()[0:100]}'
+            probename="_".join(tar_name.split("_")[:-1]).lower()
+            subset = self.lut.loc[self.lut["probetype"] == probename,"rmlst"]
+            if not subset.empty:
+                hgroup = subset.iloc[0]
+                if pd.notna(hgroup):
+                    sneaky_name = f'{tar_name.split("_")[0]}_{hgroup}'
+                else:
+                    sneaky_name = f'{tar_name.split("_")[0]}_{self.lut[self.lut["key"] == tar_name.split("_")[-1]]["description"].item()[0:100]}'
         except TypeError:
             '''If user has somehow broken fasta header'''
             sneaky_name = f'{tar_name.split("_")[0]}'
@@ -131,11 +138,12 @@ class Consensus:
         '''Group targets to organism via probe name (compiled in analysis.py)'''
         match = self.probe_names.iloc[np.where(
             np.isin(self.probe_names["orig_target_id"].str.lower(), ref[0:100].replace(">", "")))[0]]  # TODO < Curtailment
-
         if match.empty:
             print(
                 f"WARNING: Couldn't match reads to probe name: {self.probe_names['target_id']}")
             return f"Unmatched"
+        elif pd.notna(match["rmlst"].item()):
+            return f"{match['probetype'].item()}-{match['rmlst'].item()}"
         else:
             return f"{match['probetype'].item()}"
 
@@ -330,8 +338,12 @@ class Consensus:
 
     def filter_bam_to_organism(self, org_name) -> list:
         '''Output coverage stats for target consensuses'''
-        probels = self.probe_names[self.probe_names['probetype']
-                                   == org_name]['orig_target_id'].str.lower().tolist()
+        if self.probe_names["probetype"].eq(org_name).any():
+            probels = self.probe_names[self.probe_names['probetype']
+                                       == org_name]['orig_target_id'].str.lower().tolist()
+        else:
+            probels = self.probe_names[self.probe_names['genename']
+                                       == org_name]['orig_target_id'].str.lower().tolist()
         coverage_df = self.coverage[
             self.coverage["#rname"].isin(probels) | self.coverage["#rname"].str.startswith(tuple(probels), na=False)]
         assert not coverage_df.empty, f"Call to samtools coverage returned empty output. Check that your bam file is indexed and that the path to it is correct."
@@ -550,7 +562,7 @@ class Consensus:
 
         '''Consensus for each thing target group'''
         [self.collate_consensus_seqs(tar_name)
-            for tar_name in self.subconsensuses.keys() if "BACT" not in tar_name]
+            for tar_name in self.subconsensuses.keys()]
         [self.call_flat_consensus(
             i) for i in self.target_consensuses.keys() if i != "Unmatched"]
 

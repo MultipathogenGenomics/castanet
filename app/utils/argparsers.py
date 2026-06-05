@@ -65,8 +65,13 @@ def parse_arguments_lite():
                         default=False, type=str)
     parser.add_argument('-MappingRefTable', required=False,
                         default=False, type=str)
+    parser.add_argument('-FixFasta', required=False, default=True, type=str,
+                        help="If True,  replace invalid characters with 'n' and add missing '>' to headers.")
+    parser.add_argument('-DebugMode', required=False, default=True, type=str,
+                        help="If True, keeps many intermediate files for debugging purposes.")
+
     bool_fields = ["Batch", "BAM", "DoKrakenPrefilter",
-                   "DoTrimming", "DoConsensus"]
+                   "DoTrimming", "DoConsensus", "PostFilt", "SingleEndedReads","FixFasta","DebugMode"]
     return parser, bool_fields
 
 

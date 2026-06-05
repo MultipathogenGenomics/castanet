@@ -67,13 +67,11 @@ class Analysis:
             lambda x: trim_long_fpaths(x["orig_target_id"]), axis=1)
         pdf['target_id'] = pdf['target_id'].str.lower()
 
-        tmp = pdf["target_id"].str.split("_", n=1, expand=True)
-        pdf["key"] = tmp[1].astype(str)
+        pdf["key"] = pdf["target_id"].str.split("_").str[-1]
         self.lut["key"] = self.lut["key"].astype(str)
 
         pdf["organism"] = pdf.apply(
             lambda x: self.lut[self.lut["key"] == x["key"]]["organism"].iloc[0], axis=1)
-
         pdf["rmlst"] = pdf.apply(lambda x: self.lut[self.lut["key"] == x["target_id"].split(
             "_")[-1]]["rmlst"].iloc[0], axis=1)
         pdf['genename'] = pdf.target_id.str.lower().apply(
@@ -102,10 +100,10 @@ class Analysis:
 
         '''Append and apply horizontal aggregation keys (i.e. rmlst)'''
         pdf['probetype'] = pdf.genename.str.lower()
-        pdf["genename"] = pdf.apply(lambda x: x["rmlst"] if str(
-            x["rmlst"]).startswith("bact0") else x["organism"], axis=1)
-        pdf["AGGREGATE"] = pdf.apply(lambda x: f'{x["rmlst"]}_{x["target_id"].split("_")[0]}' if str(
-            x["rmlst"]).startswith("bact0") else x["target_id"].split("_")[0], axis=1)
+        pdf["genename"] = pdf.apply(lambda x: x["organism"] + "-" + x["rmlst"] if pd.notna(x["rmlst"]) else x["organism"], axis=1)
+        pdf["AGGREGATE"] = pdf.apply(lambda x: f'{x["organism"]}' if str(
+            x["rmlst"]).startswith("rmlst") else x["target_id"].split("_")[0], axis=1)
+
 
         loginfo(
             f'Organism and gene summary: {pdf.organism.nunique()} organisms, up to {pdf.groupby("probetype").probetype.nunique().max()} aggregation levels (probetype) each and up to {pdf.groupby("probetype").genename.nunique().max()} genes each.')
